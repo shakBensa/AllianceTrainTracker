@@ -10,7 +10,7 @@
   <div class="app-container">
     <header>
       <h1>SHOO</h1>
-      <div class="alliance-name">Alliance Train Tracker</div>
+      <!-- <div class="alliance-name">Alliance Train Tracker</div> -->
       <!-- <p class="subtitle">Track your train assignments and history</p> -->
       <div class="time-display">
         <span id="server-time">Server Time: --:--:--</span>
@@ -29,7 +29,9 @@
     <div id="announcement-bar" class="announcement-bar hidden">
       <div class="announcement-content">
         <span class="announcement-icon">📢</span>
-        <span id="latest-announcement-text">Loading announcements...</span>
+        <div class="announcement-text-container">
+          <span id="latest-announcement-text">Loading announcements...</span>
+        </div>
       </div>
       <button id="close-announcement" class="close-announcement">×</button>
     </div>
@@ -189,6 +191,17 @@
             <p id="password-error" class="error-message hidden">Incorrect password. Please try again.</p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- New modal for full announcement text -->
+    <div id="announcement-detail-modal" class="modal hidden">
+      <div class="announcement-detail-content">
+        <div class="announcement-detail-header">
+          <h2>Announcement</h2>
+          <span class="close-button" id="close-announcement-detail">&times;</span>
+        </div>
+        <div id="full-announcement-text" class="announcement-detail-text"></div>
       </div>
     </div>
   </div>

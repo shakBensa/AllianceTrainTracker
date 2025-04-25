@@ -142,12 +142,16 @@ const postAnnouncementButton = document.getElementById('post-announcement-button
 const prevPageButton = document.getElementById('prev-page');
 const nextPageButton = document.getElementById('next-page');
 const pageInfo = document.getElementById('page-info');
+const announcementTextContainer = document.querySelector('.announcement-text-container');
+const announcementDetailModal = document.getElementById('announcement-detail-modal');
+const fullAnnouncementText = document.getElementById('full-announcement-text');
+const closeAnnouncementDetailButton = document.getElementById('close-announcement-detail');
 
 // Check button initialization
-console.log('Button initialization:');
-console.log('- editRotationButton:', editRotationButton);
-console.log('- saveRotationButton:', saveRotationButton);
-console.log('- cancelRotationButton:', cancelRotationButton);
+// console.log('Button initialization:');
+// console.log('- editRotationButton:', editRotationButton);
+// console.log('- saveRotationButton:', saveRotationButton);
+// console.log('- cancelRotationButton:', cancelRotationButton);
 
 // Show emergency button after 5 seconds
 // setTimeout(() => {
@@ -160,12 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Test Firebase access
   testFirebaseAccess()
-    .then(success => {
-      console.log('Firebase access test result:', success ? 'PASSED' : 'FAILED');
-    })
-    .catch(error => {
-      console.error('Firebase test error:', error);
-    });
+    // .then(success => {
+    //   console.log('Firebase access test result:', success ? 'PASSED' : 'FAILED');
+    // })
+    // .catch(error => {
+    //   console.error('Firebase test error:', error);
+    // });
   
   // Check if user is already authenticated from localStorage
   checkExistingAuth();
@@ -178,13 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
   authButton.addEventListener('click', handleAuthButtonClick);
   
   // Debug DOM elements
-  console.log('Checking DOM elements:');
-  console.log('- membersModal:', membersModal);
-  console.log('- historyModal:', historyModal);
-  console.log('- announcementsModal:', announcementsModal);
-  console.log('- manageMembersButton:', manageMembersButton);
-  console.log('- viewHistoryButton:', viewHistoryButton);
-  console.log('- announcementsButton:', announcementsButton);
+//   console.log('Checking DOM elements:');
+//   console.log('- membersModal:', membersModal);
+//   console.log('- historyModal:', historyModal);
+//   console.log('- announcementsModal:', announcementsModal);
+//   console.log('- manageMembersButton:', manageMembersButton);
+//   console.log('- viewHistoryButton:', viewHistoryButton);
+//   console.log('- announcementsButton:', announcementsButton);
   
   // Add event listener for generate train button in modal
   if (generateTrainButton) {
@@ -342,6 +346,32 @@ document.addEventListener('DOMContentLoaded', () => {
       loadAnnouncements();
     });
   }
+
+  // Set up announcement text container click handler
+  if (announcementTextContainer) {
+    announcementTextContainer.addEventListener('click', showAnnouncementDetail);
+    console.log('Announcement text container click handler set up');
+  } else {
+    console.error('Announcement text container not found!');
+  }
+
+  // Set up close announcement detail modal button
+  if (closeAnnouncementDetailButton) {
+    closeAnnouncementDetailButton.addEventListener('click', () => {
+      announcementDetailModal.classList.add('hidden');
+    });
+    console.log('Close announcement detail button handler set up');
+  } else {
+    console.error('Close announcement detail button not found!');
+  }
+
+  // Add click outside handler for announcement detail modal
+  document.addEventListener('click', (event) => {
+    if (announcementDetailModal && event.target === announcementDetailModal) {
+      console.log('Clicked outside announcement detail modal, closing it');
+      announcementDetailModal.classList.add('hidden');
+    }
+  });
 });
 
 retryButton.addEventListener('click', initialize);
@@ -1913,14 +1943,14 @@ function getMemberById(memberId) {
   // First try to find by id exact match
   const memberById = state.members.find(m => m.id === memberId);
   if (memberById) {
-    console.log(`Found member by ID ${memberId}:`, memberById);
+    // console.log(`Found member by ID ${memberId}:`, memberById);
     return memberById;
   }
   
   // If not found, check if memberId is actually a name (backward compatibility)
   const memberByName = state.members.find(m => m.name === memberId);
   if (memberByName) {
-    console.log(`Found member by name ${memberId}:`, memberByName);
+    // console.log(`Found member by name ${memberId}:`, memberByName);
     return memberByName;
   }
   
@@ -1930,7 +1960,7 @@ function getMemberById(memberId) {
   // Check if member ID is in the DEFAULT_MEMBERS list
   const defaultMember = DEFAULT_MEMBERS.find(m => m.id === memberId);
   if (defaultMember) {
-    console.log(`Found member in DEFAULT_MEMBERS: ${memberId} -> ${defaultMember.name}`);
+    // console.log(`Found member in DEFAULT_MEMBERS: ${memberId} -> ${defaultMember.name}`);
     return defaultMember;
   }
   
@@ -4266,8 +4296,6 @@ function updateServerTimeDisplay(time, timeUntilNext, isLocal = false) {
 // Load announcements from Firestore
 async function loadAnnouncements() {
   try {
-    console.log('Loading announcements...');
-    
     // Initialize pagination state if needed
     if (!state.announcementPage) {
       state.announcementPage = 1;
@@ -4284,7 +4312,6 @@ async function loadAnnouncements() {
     const snapshot = await query.get();
     
     if (snapshot.empty) {
-      console.log('No announcements found.');
       state.announcements = [];
       
       // Show empty state in the announcements list
@@ -4299,6 +4326,11 @@ async function loadAnnouncements() {
     // Process the announcements
     const announcements = [];
     snapshot.forEach(doc => {
+      // Skip the initial document
+      if (doc.id === 'initial') {
+        return;
+      }
+      
       const data = doc.data();
       announcements.push({
         id: doc.id,
@@ -4309,19 +4341,12 @@ async function loadAnnouncements() {
     });
     
     state.announcements = announcements;
-    console.log(`Loaded ${announcements.length} announcements`);
     
     // Render the announcements list
     renderAnnouncementsList();
     
     // Show the latest announcement in the announcement bar
-    if (announcements.length > 0) {
-      const latest = announcements[0];
-      latestAnnouncementText.textContent = latest.text;
-      announceBar.classList.remove('hidden');
-    } else {
-      announceBar.classList.add('hidden');
-    }
+    displayLatestAnnouncement();
     
     return announcements;
   } catch (error) {
@@ -4455,8 +4480,6 @@ async function postNewAnnouncement() {
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    console.log('Announcement posted successfully');
-    
     // Clear the input field
     newAnnouncementText.value = '';
     
@@ -4485,13 +4508,60 @@ async function deleteAnnouncement(announcementId) {
     // Delete the announcement from Firestore
     await db.collection(COLLECTIONS.ANNOUNCEMENTS).doc(announcementId).delete();
     
-    console.log('Announcement deleted successfully');
-    
     // Reload announcements
     await loadAnnouncements();
     
   } catch (error) {
     console.error('Error deleting announcement:', error);
     alert('An error occurred while deleting the announcement. Please try again.');
+  }
+}
+
+// Function to display the full announcement in the modal
+function showAnnouncementDetail() {
+  // Get the latest announcement from state
+  if (state.announcements && state.announcements.length > 0) {
+    const latestAnnouncement = state.announcements[0];
+    
+    // Set the content in the modal
+    if (fullAnnouncementText) {
+      fullAnnouncementText.textContent = latestAnnouncement.text;
+      
+      // Show the modal
+      announcementDetailModal.classList.remove('hidden');
+    }
+  }
+}
+
+// Update the renderAnnouncementsList function to include this for all displayed announcements
+// This function should be inside loadAnnouncements after state.announcements is populated
+function displayLatestAnnouncement() {
+  if (state.announcements && state.announcements.length > 0) {
+    const latest = state.announcements[0];
+    
+    // Update the text in the announcement bar
+    latestAnnouncementText.textContent = latest.text;
+    
+    // Reset animation by removing and re-adding the element (forcing a reflow)
+    latestAnnouncementText.style.animation = 'none';
+    void latestAnnouncementText.offsetWidth; // Trigger reflow
+    latestAnnouncementText.style.animation = 'marquee 45s linear infinite'; // Explicitly set animation
+    
+    // Add hover events to pause animation - but only once
+    if (announcementTextContainer && !announcementTextContainer._hasHoverListeners) {
+      announcementTextContainer.addEventListener('mouseenter', () => {
+        latestAnnouncementText.style.animationPlayState = 'paused';
+      });
+      announcementTextContainer.addEventListener('mouseleave', () => {
+        latestAnnouncementText.style.animationPlayState = 'running';
+      });
+      announcementTextContainer._hasHoverListeners = true; // Mark as having listeners
+    }
+    
+    // Show the announcement bar
+    announceBar.classList.remove('hidden');
+  } else {
+    // Hide the announcement bar if no announcements
+    announceBar.classList.add('hidden');
   }
 }
