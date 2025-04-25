@@ -969,4 +969,143 @@ main {
   padding: 8px;
   background-color: rgba(255, 204, 0, 0.1);
   border-radius: 4px;
+}
+
+/* Announcements Styles */
+.announcement-bar {
+  background: linear-gradient(90deg, rgba(255, 204, 0, 0.2) 0%, rgba(255, 204, 0, 0.3) 100%);
+  border: 1px solid #ffcc00;
+  border-radius: 6px;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.announcement-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.announcement-icon {
+  font-size: 1.5rem;
+  color: #ffcc00;
+  flex-shrink: 0;
+}
+
+#latest-announcement-text {
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.close-announcement {
+  background: none;
+  border: none;
+  color: #ffcc00;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 5px;
+  margin-left: 15px;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.close-announcement:hover {
+  color: #ffd633;
+}
+
+.announcements-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.announcement-item {
+  background: #2b2b2b;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  transition: transform 0.2s ease;
+}
+
+.announcement-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.announcement-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: #ffcc00;
+}
+
+.announcement-date {
+  color: #aaa;
+}
+
+.announcement-text {
+  color: #fff;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Admin announcement form */
+.admin-announcement-form {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #444;
+}
+
+.admin-announcement-form h3 {
+  color: #ffcc00;
+  margin-bottom: 10px;
+}
+
+#new-announcement-text {
+  width: 100%;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #fff;
+  padding: 10px;
+  font-size: 1rem;
+  resize: vertical;
+  margin-bottom: 10px;
+}
+
+#new-announcement-text:focus {
+  outline: none;
+  border-color: #ffcc00;
+}
+
+#post-announcement-button {
+  margin-top: 10px;
+}
+
+/* Pagination controls */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+#page-info {
+  color: #ffcc00;
+  font-size: 0.9rem;
 } 

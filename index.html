@@ -25,6 +25,15 @@
       </div>
     </header>
 
+    <!-- Announcement bar - displays the latest announcement -->
+    <div id="announcement-bar" class="announcement-bar hidden">
+      <div class="announcement-content">
+        <span class="announcement-icon">📢</span>
+        <span id="latest-announcement-text">Loading announcements...</span>
+      </div>
+      <button id="close-announcement" class="close-announcement">×</button>
+    </div>
+
     <main>
       <div id="loading-container" class="loading-container">
         <div class="loading-spinner"></div>
@@ -52,6 +61,7 @@
         <div class="button-container">
           <button id="manage-members-button" class="button">Manage Members</button>
           <button id="view-history-button" class="button">View History</button>
+          <button id="announcements-button" class="button">Announcements</button>
           <button id="edit-rotation-button" class="button hidden">Edit Rotation</button>
           <button id="save-rotation-button" class="button hidden">Save Rotation</button>
           <button id="cancel-rotation-button" class="button hidden">Cancel</button>
@@ -136,6 +146,28 @@
         </div>
         <div class="modal-body">
           <div id="history-list" class="history-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="announcements-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2><span class="shoo-tag">SHOO</span> Announcements</h2>
+          <span class="close-button" id="close-announcements-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div id="announcements-list" class="announcements-list"></div>
+          <div class="pagination-controls">
+            <button id="prev-page" class="button pagination-button" disabled>Previous</button>
+            <span id="page-info">Page 1</span>
+            <button id="next-page" class="button pagination-button" disabled>Next</button>
+          </div>
+          <div id="admin-announcement-form" class="admin-announcement-form hidden">
+            <h3>Post New Announcement</h3>
+            <textarea id="new-announcement-text" rows="3" placeholder="Enter announcement message..."></textarea>
+            <button id="post-announcement-button" class="button">Post Announcement</button>
+          </div>
         </div>
       </div>
     </div>

@@ -17,7 +17,8 @@ const COLLECTIONS = {
   TRAIN_HISTORY: 'trainHistory',
   SETTINGS: 'settings',
   SESSIONS: 'sessions',
-  SERVER_TIME: 'serverTime'
+  SERVER_TIME: 'serverTime',
+  ANNOUNCEMENTS: 'announcements'
 };
 
 // Default members if none are stored
@@ -66,6 +67,8 @@ const state = {
   editingDocumentId: null, // Store the document ID being edited
   historyPage: 1,       // Current page in history view
   historyPageSize: 5,    // Number of history items per page
+  announcementPage: 1,
+  announcementPageSize: 5
 };
 
 // Additional Firestore Settings
@@ -96,15 +99,19 @@ const generateTrainButton = document.getElementById('generate-train-modal-button
 const forceRegenerateTrainButton = document.getElementById('force-regenerate-train-button');
 const manageMembersButton = document.getElementById('manage-members-button');
 const viewHistoryButton = document.getElementById('view-history-button');
+const announcementsButton = document.getElementById('announcements-button');
 const editRotationButton = document.getElementById('edit-rotation-button');
 const saveRotationButton = document.getElementById('save-rotation-button');
 const cancelRotationButton = document.getElementById('cancel-rotation-button');
 const membersModal = document.getElementById('members-modal');
 const historyModal = document.getElementById('history-modal');
+const announcementsModal = document.getElementById('announcements-modal');
 const historyList = document.getElementById('history-list');
+const announcementsList = document.getElementById('announcements-list');
 const passwordModal = document.getElementById('password-modal');
 const closeMembersModalButton = document.getElementById('close-members-modal');
 const closeHistoryModalButton = document.getElementById('close-history-modal');
+const closeAnnouncementsModalButton = document.getElementById('close-announcements-modal');
 const closePasswordModalButton = document.getElementById('close-password-modal');
 const addMemberButton = document.getElementById('add-member-button');
 const newMemberNameInput = document.getElementById('new-member-name');
@@ -126,6 +133,15 @@ const passwordChangeMessage = document.getElementById('password-change-message')
 const conductorList = document.getElementById('conductor-list');
 const regularWagonsContainer = document.querySelector('.regular-wagons-container');
 const membersList = document.getElementById('members-list');
+const announceBar = document.getElementById('announcement-bar');
+const latestAnnouncementText = document.getElementById('latest-announcement-text');
+const closeAnnouncementButton = document.getElementById('close-announcement');
+const adminAnnouncementForm = document.getElementById('admin-announcement-form');
+const newAnnouncementText = document.getElementById('new-announcement-text');
+const postAnnouncementButton = document.getElementById('post-announcement-button');
+const prevPageButton = document.getElementById('prev-page');
+const nextPageButton = document.getElementById('next-page');
+const pageInfo = document.getElementById('page-info');
 
 // Check button initialization
 console.log('Button initialization:');
@@ -165,8 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('Checking DOM elements:');
   console.log('- membersModal:', membersModal);
   console.log('- historyModal:', historyModal);
+  console.log('- announcementsModal:', announcementsModal);
   console.log('- manageMembersButton:', manageMembersButton);
   console.log('- viewHistoryButton:', viewHistoryButton);
+  console.log('- announcementsButton:', announcementsButton);
   
   // Add event listener for generate train button in modal
   if (generateTrainButton) {
@@ -253,6 +271,12 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Close history button not found!');
   }
   
+  if (closeAnnouncementsModalButton) {
+    closeAnnouncementsModalButton.addEventListener('click', () => {
+      announcementsModal.classList.add('hidden');
+    });
+  }
+  
   // Set up window click for modal closing
   window.addEventListener('click', event => {
     if (membersModal && event.target === membersModal) {
@@ -268,10 +292,56 @@ document.addEventListener('DOMContentLoaded', () => {
       passwordModal.classList.add('hidden');
       currentAction = null;
     }
+    if (announcementsModal && event.target === announcementsModal) {
+      console.log('Clicked outside announcements modal, closing it');
+      announcementsModal.classList.add('hidden');
+    }
   });
   
   // Start app initialization
   initialize();
+  
+  // Set up announcements button
+  if (announcementsButton) {
+    announcementsButton.addEventListener('click', openAnnouncementsModal);
+    console.log('Announcements button handler set up');
+  } else {
+    console.error('Announcements button not found!');
+  }
+  
+  // Set up close announcement bar button
+  if (closeAnnouncementButton) {
+    closeAnnouncementButton.addEventListener('click', () => {
+      announceBar.classList.add('hidden');
+    });
+  }
+  
+  // Set up close announcements modal button
+  if (closeAnnouncementsModalButton) {
+    closeAnnouncementsModalButton.addEventListener('click', () => {
+      announcementsModal.classList.add('hidden');
+    });
+  }
+  
+  // Set up post announcement button
+  if (postAnnouncementButton) {
+    postAnnouncementButton.addEventListener('click', postNewAnnouncement);
+  }
+  
+  // Setup pagination buttons
+  if (prevPageButton && nextPageButton) {
+    prevPageButton.addEventListener('click', () => {
+      if (state.announcementPage > 1) {
+        state.announcementPage--;
+        loadAnnouncements();
+      }
+    });
+    
+    nextPageButton.addEventListener('click', () => {
+      state.announcementPage++;
+      loadAnnouncements();
+    });
+  }
 });
 
 retryButton.addEventListener('click', initialize);
@@ -412,6 +482,7 @@ async function initialize() {
       trainContainer: !!trainContainer,
       membersModal: !!membersModal,
       historyModal: !!historyModal,
+      announcementsModal: !!announcementsModal,
       conductorList: !!document.getElementById('conductor-list'),
       regularWagonsContainer: !!document.querySelector('.regular-wagons-container')
     });
@@ -535,6 +606,9 @@ async function initialize() {
       console.error('Error checking for new daily train:', error);
     }
     
+    // Load announcements
+    await loadAnnouncements();
+    
     state.dataInitialized = true;
     state.isLoading = false;
     
@@ -584,13 +658,14 @@ async function initializeCollections() {
     }
     
     // Initialize essential collections only
-    // We don't need to initialize the train_history collection with a placeholder
+    // Expand the essential collections array to include ANNOUNCEMENTS
     const essentialCollections = [
       COLLECTIONS.MEMBERS,
       COLLECTIONS.LEADERS,
       COLLECTIONS.HISTORY,
       COLLECTIONS.SETTINGS,
-      COLLECTIONS.SESSIONS
+      COLLECTIONS.SESSIONS,
+      COLLECTIONS.ANNOUNCEMENTS
     ];
     
     // Skip TRAIN_HISTORY as it should only contain actual train assignments
@@ -2334,6 +2409,7 @@ function closeModals() {
   console.log('Closing all modals');
   membersModal.classList.add('hidden');
   historyModal.classList.add('hidden');
+  announcementsModal.classList.add('hidden');
 }
 
 // UI Helper Functions
@@ -3215,6 +3291,11 @@ function setButtonVisibility() {
     console.log("User is authenticated - showing admin buttons");
     manageMembersButton.style.display = 'inline-block';
     
+    // Show admin announcement form when authenticated
+    if (adminAnnouncementForm) {
+      adminAnnouncementForm.classList.remove('hidden');
+    }
+    
     // Handle edit rotation button - remove both hidden and admin-only classes
     if (state.isEditingRotation) {
       console.log("In editing mode - showing save/cancel buttons");
@@ -3236,6 +3317,12 @@ function setButtonVisibility() {
   } else {
     console.log("User is not authenticated - hiding admin buttons");
     manageMembersButton.style.display = 'none';
+    
+    // Hide admin announcement form when not authenticated
+    if (adminAnnouncementForm) {
+      adminAnnouncementForm.classList.add('hidden');
+    }
+    
     editRotationButton.classList.add('hidden');
     editRotationButton.style.display = 'none';
     saveRotationButton.classList.add('hidden');
@@ -3757,6 +3844,7 @@ async function initialize() {
       trainContainer: !!trainContainer,
       membersModal: !!membersModal,
       historyModal: !!historyModal,
+      announcementsModal: !!announcementsModal,
       conductorList: !!document.getElementById('conductor-list'),
       regularWagonsContainer: !!document.querySelector('.regular-wagons-container')
     });
@@ -3879,6 +3967,9 @@ async function initialize() {
     } catch (error) {
       console.error('Error checking for new daily train:', error);
     }
+    
+    // Load announcements
+    await loadAnnouncements();
     
     state.dataInitialized = true;
     state.isLoading = false;
@@ -4168,5 +4259,239 @@ function updateServerTimeDisplay(time, timeUntilNext, isLocal = false) {
     if (nextTrainTimeDisplay && timeUntilNext) {
       nextTrainTimeDisplay.textContent = `${timeUntilNext.hours}h ${timeUntilNext.minutes}m ${timeUntilNext.seconds}s`;
     }
+  }
+}
+
+// Announcements functions
+// Load announcements from Firestore
+async function loadAnnouncements() {
+  try {
+    console.log('Loading announcements...');
+    
+    // Initialize pagination state if needed
+    if (!state.announcementPage) {
+      state.announcementPage = 1;
+    }
+    
+    if (!state.announcementPageSize) {
+      state.announcementPageSize = 5;
+    }
+    
+    // Query announcements with pagination, sorted by timestamp in descending order
+    const query = db.collection(COLLECTIONS.ANNOUNCEMENTS)
+      .orderBy('timestamp', 'desc');
+    
+    const snapshot = await query.get();
+    
+    if (snapshot.empty) {
+      console.log('No announcements found.');
+      state.announcements = [];
+      
+      // Show empty state in the announcements list
+      renderAnnouncementsList();
+      
+      // Hide the announcement bar if no announcements
+      announceBar.classList.add('hidden');
+      
+      return;
+    }
+    
+    // Process the announcements
+    const announcements = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      announcements.push({
+        id: doc.id,
+        text: data.text,
+        timestamp: data.timestamp,
+        formattedDate: formatAnnouncementDate(data.timestamp)
+      });
+    });
+    
+    state.announcements = announcements;
+    console.log(`Loaded ${announcements.length} announcements`);
+    
+    // Render the announcements list
+    renderAnnouncementsList();
+    
+    // Show the latest announcement in the announcement bar
+    if (announcements.length > 0) {
+      const latest = announcements[0];
+      latestAnnouncementText.textContent = latest.text;
+      announceBar.classList.remove('hidden');
+    } else {
+      announceBar.classList.add('hidden');
+    }
+    
+    return announcements;
+  } catch (error) {
+    console.error('Error loading announcements:', error);
+    return [];
+  }
+}
+
+// Format the announcement date for display
+function formatAnnouncementDate(timestamp) {
+  if (!timestamp) return 'Unknown date';
+  
+  let date;
+  
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    // Firestore timestamp
+    date = timestamp.toDate();
+  } else if (timestamp instanceof Date) {
+    // JavaScript Date object
+    date = timestamp;
+  } else {
+    // Try to parse as a string or number
+    date = new Date(timestamp);
+  }
+  
+  if (isNaN(date.getTime())) {
+    return 'Invalid date';
+  }
+  
+  // Format the date: "June 15, 2023 at 3:45 PM"
+  return date.toLocaleDateString(undefined, { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  }) + ' at ' + date.toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+}
+
+// Open the announcements modal and load announcements
+function openAnnouncementsModal() {
+  // Show the announcements modal
+  announcementsModal.classList.remove('hidden');
+  
+  // Load announcements if not already loaded
+  loadAnnouncements();
+  
+  // Show the admin form if authenticated
+  if (isAuthenticated) {
+    adminAnnouncementForm.classList.remove('hidden');
+  } else {
+    adminAnnouncementForm.classList.add('hidden');
+  }
+}
+
+// Render the announcements list in the modal
+function renderAnnouncementsList() {
+  if (!announcementsList) return;
+  
+  const announcements = state.announcements || [];
+  const startIndex = (state.announcementPage - 1) * state.announcementPageSize;
+  const endIndex = startIndex + state.announcementPageSize;
+  const pageAnnouncements = announcements.slice(startIndex, endIndex);
+  
+  // Update pagination UI
+  pageInfo.textContent = `Page ${state.announcementPage}`;
+  prevPageButton.disabled = state.announcementPage <= 1;
+  nextPageButton.disabled = endIndex >= announcements.length;
+  
+  if (announcements.length === 0) {
+    announcementsList.innerHTML = '<div class="announcement-empty">No announcements found.</div>';
+    return;
+  }
+  
+  announcementsList.innerHTML = '';
+  
+  pageAnnouncements.forEach(announcement => {
+    const announcementItem = document.createElement('div');
+    announcementItem.className = 'announcement-item';
+    
+    const announcementHeader = document.createElement('div');
+    announcementHeader.className = 'announcement-header';
+    
+    const announcementDate = document.createElement('div');
+    announcementDate.className = 'announcement-date';
+    announcementDate.textContent = announcement.formattedDate;
+    
+    announcementHeader.appendChild(announcementDate);
+    
+    const announcementText = document.createElement('div');
+    announcementText.className = 'announcement-text';
+    announcementText.textContent = announcement.text;
+    
+    announcementItem.appendChild(announcementHeader);
+    announcementItem.appendChild(announcementText);
+    
+    // Add delete button for admins
+    if (isAuthenticated) {
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'delete-button';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', () => deleteAnnouncement(announcement.id));
+      
+      announcementHeader.appendChild(deleteButton);
+    }
+    
+    announcementsList.appendChild(announcementItem);
+  });
+}
+
+// Post a new announcement to Firestore
+async function postNewAnnouncement() {
+  try {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      alert('You must be an admin to post announcements');
+      return;
+    }
+    
+    const text = newAnnouncementText.value.trim();
+    
+    if (!text) {
+      alert('Please enter an announcement message');
+      return;
+    }
+    
+    // Add announcement to Firestore
+    await db.collection(COLLECTIONS.ANNOUNCEMENTS).add({
+      text: text,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log('Announcement posted successfully');
+    
+    // Clear the input field
+    newAnnouncementText.value = '';
+    
+    // Reload announcements
+    await loadAnnouncements();
+    
+  } catch (error) {
+    console.error('Error posting announcement:', error);
+    alert('An error occurred while posting the announcement. Please try again.');
+  }
+}
+
+// Delete an announcement from Firestore
+async function deleteAnnouncement(announcementId) {
+  try {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      alert('You must be an admin to delete announcements');
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to delete this announcement?')) {
+      return;
+    }
+    
+    // Delete the announcement from Firestore
+    await db.collection(COLLECTIONS.ANNOUNCEMENTS).doc(announcementId).delete();
+    
+    console.log('Announcement deleted successfully');
+    
+    // Reload announcements
+    await loadAnnouncements();
+    
+  } catch (error) {
+    console.error('Error deleting announcement:', error);
+    alert('An error occurred while deleting the announcement. Please try again.');
   }
 }
