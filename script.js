@@ -100,12 +100,14 @@ const forceRegenerateTrainButton = document.getElementById('force-regenerate-tra
 const manageMembersButton = document.getElementById('manage-members-button');
 const viewHistoryButton = document.getElementById('view-history-button');
 const announcementsButton = document.getElementById('announcements-button');
+const screenshotButton = document.getElementById('screenshot-button');
 const editRotationButton = document.getElementById('edit-rotation-button');
 const saveRotationButton = document.getElementById('save-rotation-button');
 const cancelRotationButton = document.getElementById('cancel-rotation-button');
 const membersModal = document.getElementById('members-modal');
 const historyModal = document.getElementById('history-modal');
 const announcementsModal = document.getElementById('announcements-modal');
+const screenshotModal = document.getElementById('screenshot-modal');
 const historyList = document.getElementById('history-list');
 const announcementsList = document.getElementById('announcements-list');
 const passwordModal = document.getElementById('password-modal');
@@ -113,6 +115,11 @@ const closeMembersModalButton = document.getElementById('close-members-modal');
 const closeHistoryModalButton = document.getElementById('close-history-modal');
 const closeAnnouncementsModalButton = document.getElementById('close-announcements-modal');
 const closePasswordModalButton = document.getElementById('close-password-modal');
+const closeScreenshotModalButton = document.getElementById('close-screenshot-modal');
+const screenshotImage = document.getElementById('screenshot-image');
+const downloadScreenshotButton = document.getElementById('download-screenshot');
+const shareScreenshotButton = document.getElementById('share-screenshot');
+const closeScreenshotButton = document.getElementById('close-screenshot');
 const addMemberButton = document.getElementById('add-member-button');
 const newMemberNameInput = document.getElementById('new-member-name');
 const addBulkMembersButton = document.getElementById('add-bulk-members-button');
@@ -370,6 +377,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (announcementDetailModal && event.target === announcementDetailModal) {
       console.log('Clicked outside announcement detail modal, closing it');
       announcementDetailModal.classList.add('hidden');
+    }
+  });
+
+  // Set up screenshot button handler
+  if (screenshotButton) {
+    screenshotButton.addEventListener('click', captureScreenshot);
+    console.log('Screenshot button handler set up');
+  } else {
+    console.error('Screenshot button not found!');
+  }
+  
+  // Set up close screenshot modal button
+  if (closeScreenshotModalButton) {
+    closeScreenshotModalButton.addEventListener('click', () => {
+      screenshotModal.classList.add('hidden');
+    });
+    console.log('Close screenshot modal button handler set up');
+  }
+  
+  // Set up close screenshot button in the modal footer
+  if (closeScreenshotButton) {
+    closeScreenshotButton.addEventListener('click', () => {
+      screenshotModal.classList.add('hidden');
+    });
+  }
+  
+  // Add click outside handler for screenshot modal
+  document.addEventListener('click', (event) => {
+    if (screenshotModal && event.target === screenshotModal) {
+      console.log('Clicked outside screenshot modal, closing it');
+      screenshotModal.classList.add('hidden');
     }
   });
 });
@@ -2440,6 +2478,7 @@ function closeModals() {
   membersModal.classList.add('hidden');
   historyModal.classList.add('hidden');
   announcementsModal.classList.add('hidden');
+  screenshotModal.classList.add('hidden');
 }
 
 // UI Helper Functions
@@ -4564,4 +4603,143 @@ function displayLatestAnnouncement() {
     // Hide the announcement bar if no announcements
     announceBar.classList.add('hidden');
   }
+}
+
+// Screenshot function to capture the train container
+function captureScreenshot() {
+  showLoading("Capturing screenshot...");
+  
+  // Make sure the train container is visible before capture
+  const originalDisplay = trainContainer.style.display;
+  if (trainContainer.classList.contains('hidden')) {
+    console.log('Train container was hidden, making it temporarily visible for screenshot');
+    trainContainer.classList.remove('hidden');
+  }
+
+  // Get reference to the button container
+  const buttonContainer = trainContainer.querySelector('.button-container');
+  const originalButtonDisplay = buttonContainer ? buttonContainer.style.display : null;
+  
+  // Temporarily hide the button container
+  if (buttonContainer) {
+    buttonContainer.style.display = 'none';
+  }
+
+  // Make sure all content is properly rendered
+  setTimeout(() => {
+    // Use html2canvas to capture the train container with its contents
+    html2canvas(trainContainer, {
+      backgroundColor: '#2a2a2a',
+      scale: 2, // Higher quality
+      logging: true, // Enable logging to help debug
+      useCORS: true,
+      allowTaint: true,
+      onclone: function(clonedDocument) {
+        // Any modifications to the cloned document before capture
+        const clonedContainer = clonedDocument.getElementById('train-container');
+        if (clonedContainer) {
+          clonedContainer.style.display = 'flex';
+          clonedContainer.style.visibility = 'visible';
+          clonedContainer.style.position = 'static';
+          clonedContainer.style.overflow = 'visible';
+          
+          // Also hide buttons in the cloned document
+          const clonedButtonContainer = clonedContainer.querySelector('.button-container');
+          if (clonedButtonContainer) {
+            clonedButtonContainer.style.display = 'none';
+          }
+        }
+      }
+    }).then(canvas => {
+      // Check if canvas has content
+      if (canvas.width <= 1 || canvas.height <= 1) {
+        console.error('Canvas has invalid dimensions:', canvas.width, canvas.height);
+        alert('Error: Could not capture the train assignment. Please try again.');
+        
+        // Restore button container display
+        if (buttonContainer && originalButtonDisplay !== null) {
+          buttonContainer.style.display = originalButtonDisplay;
+        } else if (buttonContainer) {
+          buttonContainer.style.display = '';
+        }
+        
+        hideLoading();
+        return;
+      }
+
+      // Convert canvas to image data URL
+      const imageUrl = canvas.toDataURL('image/png');
+      
+      // Display in modal
+      screenshotImage.src = imageUrl;
+      screenshotModal.classList.remove('hidden');
+      
+      // Set up download button
+      downloadScreenshotButton.onclick = function() {
+        const link = document.createElement('a');
+        const filename = `SHOO-train-assignment-${formatDateTimeId(new Date())}.png`;
+        link.download = filename;
+        link.href = imageUrl;
+        link.click();
+        console.log('Download initiated for file:', filename);
+      };
+      
+      // Set up share button if Web Share API is available
+      if (navigator.share) {
+        shareScreenshotButton.classList.remove('hidden');
+        shareScreenshotButton.onclick = async function() {
+          try {
+            const blob = await (await fetch(imageUrl)).blob();
+            const file = new File([blob], `SHOO-train-assignment-${formatDateTimeId(new Date())}.png`, { type: 'image/png' });
+            
+            await navigator.share({
+              title: 'SHOO Alliance Train Assignment',
+              text: 'Check out today\'s train assignment!',
+              files: [file]
+            });
+          } catch (err) {
+            console.error('Error sharing:', err);
+            alert('Failed to share the screenshot: ' + err.message);
+          }
+        };
+      } else {
+        shareScreenshotButton.classList.add('hidden');
+      }
+      
+      // Restore original states
+      if (originalDisplay !== trainContainer.style.display) {
+        if (originalDisplay === 'none' || originalDisplay === '') {
+          trainContainer.classList.add('hidden');
+        }
+      }
+      
+      // Restore button container display
+      if (buttonContainer && originalButtonDisplay !== null) {
+        buttonContainer.style.display = originalButtonDisplay;
+      } else if (buttonContainer) {
+        buttonContainer.style.display = '';
+      }
+      
+      hideLoading();
+    }).catch(error => {
+      console.error('Screenshot error:', error);
+      alert('Failed to capture screenshot: ' + error.message);
+      
+      // Restore original visibility state
+      if (originalDisplay !== trainContainer.style.display) {
+        if (originalDisplay === 'none' || originalDisplay === '') {
+          trainContainer.classList.add('hidden');
+        }
+      }
+      
+      // Restore button container display
+      if (buttonContainer && originalButtonDisplay !== null) {
+        buttonContainer.style.display = originalButtonDisplay;
+      } else if (buttonContainer) {
+        buttonContainer.style.display = '';
+      }
+      
+      hideLoading();
+    });
+  }, 300); // Short delay to ensure DOM is ready
 }

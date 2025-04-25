@@ -64,6 +64,7 @@
           <button id="manage-members-button" class="button">Manage Members</button>
           <button id="view-history-button" class="button">View History</button>
           <button id="announcements-button" class="button">Announcements</button>
+          <button id="screenshot-button" class="button"><span class="screenshot-icon">📷</span> Screenshot</button>
           <button id="edit-rotation-button" class="button hidden">Edit Rotation</button>
           <button id="save-rotation-button" class="button hidden">Save Rotation</button>
           <button id="cancel-rotation-button" class="button hidden">Cancel</button>
@@ -204,11 +205,32 @@
         <div id="full-announcement-text" class="announcement-detail-text"></div>
       </div>
     </div>
+
+    <!-- Screenshot modal -->
+    <div id="screenshot-modal" class="modal hidden">
+      <div class="screenshot-content">
+        <div class="screenshot-header">
+          <h2>Train Assignment Screenshot</h2>
+          <span class="close-button" id="close-screenshot-modal">&times;</span>
+        </div>
+        <div class="screenshot-body">
+          <img id="screenshot-image" class="screenshot-image" alt="Train Assignment Screenshot">
+        </div>
+        <div class="screenshot-actions">
+          <button id="download-screenshot" class="button">Download</button>
+          <button id="share-screenshot" class="button">Share</button>
+          <button id="close-screenshot" class="button cancel-button">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+  
+  <!-- html2canvas for screenshots -->
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   
   <!-- Main application script -->
   <script src="script.js"></script>
