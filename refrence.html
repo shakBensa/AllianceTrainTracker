@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHOO Alliance Train Riders</title>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: 'Orbitron', sans-serif;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      font-size: 16px;
+    }
+    .alliance-logo {
+      margin: 0 auto 15px;
+      max-width: 600px;
+      position: relative;
+    }
+    .alliance-name {
+      font-family: 'Anton', sans-serif;
+      color: #ffcc00;
+      text-shadow: 2px 2px 6px #000;
+      font-size: 2.2rem;
+      letter-spacing: 4px;
+      margin-bottom: 0;
+    }
+    .alliance-tagline {
+      color: #aaa;
+      font-style: italic;
+      margin-top: 0;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+    }
+    h1 {
+      font-family: 'Anton', sans-serif;
+      color: #ffcc00;
+      text-shadow: 2px 2px 6px #000;
+      font-size: 1.8rem;
+      margin-top: 0;
+    }
+    #dateDisplay, #countdown {
+      font-size: 1rem;
+      color: #aaa;
+      margin-bottom: 10px;
+    }
+    button {
+      margin: 10px 5px;
+      padding: 10px 15px;
+      background-color: #ffcc00;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    button:disabled {
+      background-color: #666;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .admin-button {
+      background-color: #ff9900;
+    }
+    .train { 
+      display: flex; 
+      justify-content: center; 
+      flex-wrap: wrap; 
+      margin-top: 20px; 
+    }
+    .wagon {
+      background: #2b2b2b;
+      border: 4px solid #333;
+      border-radius: 0 0 10px 10px;
+      margin: 10px;
+      width: calc(100% - 50px);
+      max-width: 240px;
+      padding: 20px 15px 30px;
+      box-shadow: inset 0 2px 0 #666, 0 8px 10px rgba(0, 0, 0, 0.5);
+      position: relative;
+      animation: depart 1.5s ease-in-out;
+    }
+    @keyframes depart {
+      0% { transform: translateX(-50px); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+    .wagon::before {
+      content: "🚃";
+      font-size: 40px;
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .wagon h2 { 
+      margin-top: 0; 
+      color: #00e676; 
+      font-size: 1.2rem; 
+      position: relative;
+    }
+    .wagon ul { list-style: none; padding: 0; margin: 0; }
+    .wagon li { margin: 8px 0; font-size: 0.95rem; word-break: break-word; }
+    .r4r5 { color: gold; font-weight: bold; }
+    .leader { color: #cc44ff; font-weight: bold; }
+    #historyLog {
+      display: none;
+      text-align: left;
+      background: #1c1c1c;
+      padding: 10px;
+      margin-top: 30px;
+      border: 1px solid #444;
+      border-radius: 8px;
+      width: calc(100% - 20px);
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      overflow-x: auto;
+    }
+    #memberPanel {
+      display: none;
+      text-align: left;
+      background: #1c1c1c;
+      padding: 15px;
+      margin-top: 30px;
+      border: 1px solid #444;
+      border-radius: 8px;
+      width: calc(100% - 30px);
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      overflow-x: auto;
+    }
+    #historyLog h3, #memberPanel h3 { 
+      color: #ffcc00; 
+      position: relative;
+    }
+    #historyLog h3:after, #memberPanel h3:after {
+      content: "SHOO";
+      position: absolute;
+      right: 10px;
+      top: 0;
+      font-size: 1rem;
+      color: #ffcc00;
+      opacity: 0.6;
+      letter-spacing: 1px;
+    }
+    #historyTools, #memberTools {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    select, input[type="text"], input[type="password"] {
+      margin: 10px 5px;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      max-width: 300px;
+    }
+    .stats {
+      background: #1c1c1c;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 20px auto;
+      max-width: 100%;
+      text-align: left;
+      overflow-x: auto;
+    }
+    .stats h3 { color: #ffcc00; margin-top: 0; }
+    .fairness-indicator {
+      font-size: 10px;
+      vertical-align: super;
+      margin-left: 3px;
+      color: #66ff66;
+    }
+    #historyContent {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.9rem;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 15px 0;
+    }
+    .pagination button {
+      margin: 5px;
+      padding: 5px 10px;
+    }
+    .pagination-info {
+      margin: 0 10px;
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+    .pagination-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-top: 15px;
+    }
+    .page-size-control {
+      display: flex;
+      align-items: center;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+    .page-size-control select {
+      margin-left: 8px;
+    }
+    .member-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .member-item {
+      background: #2b2b2b;
+      border: 2px solid #444;
+      border-radius: 5px;
+      padding: 8px 12px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .member-item.r4r5 {
+      border-color: gold;
+    }
+    .member-item.leader {
+      border-color: #cc44ff;
+    }
+    .member-delete {
+      cursor: pointer;
+      margin-left: 8px;
+      color: #ff6666;
+      font-weight: bold;
+    }
+    .member-role-toggle {
+      cursor: pointer;
+      margin-left: 8px;
+      display: inline-block;
+    }
+    .role-r4r5 {
+      color: #ffcc00;
+    }
+    .role-leader {
+      color: #cc44ff;
+    }
+    .add-member-form {
+      margin: 20px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+    .add-member-form input[type="text"] {
+      flex-grow: 1;
+      max-width: 250px;
+    }
+    .role-options {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .role-option {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #aaa;
+    }
+    .role-tag {
+      margin-right: 5px;
+      font-weight: bold;
+    }
+    .r4r5-tag {
+      color: gold;
+    }
+    .leader-tag {
+      color: #cc44ff;
+    }
+    .import-export-area {
+      margin-top: 25px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin: 10px 0;
+      background: #222;
+      color: #ddd;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 8px;
+      resize: vertical;
+      font-family: monospace;
+    }
+    .reset-notice {
+      color: #ff6666;
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+    
+    /* Password dialog */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #222;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      border: 2px solid #444;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+    .modal-title {
+      color: #ffcc00;
+      margin-top: 0;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .modal-form p {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .modal-form input[type="password"] {
+      width: 80%;
+      margin: 10px auto;
+      text-align: center;
+    }
+    .modal-footer {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    .hidden {
+      display: none;
+    }
+    
+    /* Settings panel */
+    .settings-section {
+      margin: 15px 0;
+      padding: 10px;
+      background: #2a2a2a;
+      border-radius: 5px;
+    }
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    .settings-label {
+      flex-grow: 1;
+      text-align: left;
+      margin-right: 10px;
+    }
+    
+    .footer {
+      margin-top: 40px;
+      font-size: 0.8rem;
+      color: #666;
+      text-align: center;
+    }
+    .footer .alliance-name {
+      font-size: 1rem;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    
+    /* Loading Indicator */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      cursor: pointer; /* Make it clickable */
+    }
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #ffcc00;
+      border-bottom-color: transparent;
+      border-radius: 50%;
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite;
+    }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loader-text {
+      color: #ffcc00;
+      margin-top: 20px;
+      font-size: 1.2rem;
+    }
+    
+    .close-loader {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: #ffcc00;
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid #ffcc00;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    /* Mobile-specific styles */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+        font-size: 14px;
+      }
+      .alliance-name {
+        font-size: 1.8rem;
+      }
+      .alliance-tagline {
+        font-size: 0.8rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin-top: 10px;
+      }
+      button {
+        padding: 8px 12px;
+        margin: 5px 3px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+      }
+      .wagon {
+        margin: 8px 4px;
+        padding: 15px 10px 25px;
+      }
+      .wagon::before {
+        font-size: 30px;
+        top: -15px;
+      }
+      .wagon h2 {
+        font-size: 1rem;
+      }
+      .wagon li {
+        font-size: 0.85rem;
+        margin: 6px 0;
+      }
+      #historyTools, #memberTools {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      select, input[type="text"], input[type="password"] {
+        width: 100%;
+        margin: 5px 0;
+      }
+      #statsContent table {
+        font-size: 0.8rem;
+      }
+      #statsContent th, #statsContent td {
+        padding: 3px !important;
+      }
+      #dateDisplay, #countdown {
+        font-size: 0.85rem;
+      }
+      .pagination {
+        flex-direction: column;
+      }
+      .pagination-controls {
+        flex-direction: column;
+      }
+      .page-size-control {
+        margin-top: 10px;
+      }
+      .add-member-form {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .add-member-form input, .add-member-form button {
+        width: 100%;
+        max-width: 100%;
+        margin: 5px 0;
+      }
+      .role-options {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .settings-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .settings-row input, .settings-row button {
+        width: 100%;
+        margin-top: 5px;
+      }
+    }
+    
+    /* Table responsiveness for stats */
+    .stats table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .stats td, .stats th {
+      padding: 5px;
+      border-bottom: 1px solid #333;
+    }
+    @media (max-width: 480px) {
+      .stats table {
+        font-size: 0.75rem;
+      }
+      .stats td, .stats th {
+        padding: 2px;
+      }
+    }
+
+    /* Buttons at top */
+    .top-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Today's Alliance Train Riders</h1>
+  <div id="dateDisplay"></div>
+  <div id="countdown"></div>
+  
+  <div class="top-buttons">
+    <button id="screenshotBtn">📸 Save Screenshot</button>
+    <button id="historyBtn">📜 Show History</button>
+    <button id="memberBtn" class="admin-button">🔐 Manage Members</button>
+  </div>
+  
+  <div class="train" id="train"></div>
+  
+  <div id="historyLog">
+    <h3>Rotation History</h3>
+    <div id="historyTools">
+      <button id="exportBtn">📁 Export History</button>
+      <button id="viewStatsBtn">📊 View Stats</button>
+      <input type="text" id="filterInput" placeholder="Filter by player name...">
+      <select id="sortOrder">
+        <option value="asc">Sort by Oldest</option>
+        <option value="desc">Sort by Newest</option>
+      </select>
+    </div>
+    <div id="statsPanel" class="stats" style="display: none;">
+      <h3>Statistics</h3>
+      <div id="statsContent"></div>
+    </div>
+    <pre id="historyContent"></pre>
+    <div class="pagination-controls">
+      <div class="pagination">
+        <button id="prevPage" disabled>◀ Previous</button>
+        <div class="pagination-info">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></div>
+        <button id="nextPage" disabled>Next ▶</button>
+      </div>
+      <div class="page-size-control">
+        <label for="pageSize">Entries per page:</label>
+        <select id="pageSize">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
+          <option value="-1">Show All</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  
+  <div id="memberPanel">
+    <h3>Manage Alliance Members</h3>
+    <div id="memberTools">
+      <button id="refreshTrainBtn">🔄 Refresh Train</button>
+      <button id="backupMembersBtn">💾 Backup Members</button>
+      <button id="settingsBtn">⚙️ Admin Settings</button>
+    </div>
+    
+    <div id="settingsPanel" class="settings-section" style="display: none;">
+      <h4>Admin Settings</h4>
+      <div class="settings-row">
+        <div class="settings-label">Change Admin Password:</div>
+        <input type="password" id="newPassword" placeholder="New password">
+        <button id="changePasswordBtn">Update</button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Session Timeout:</div>
+        <select id="sessionTimeout">
+          <option value="5">5 minutes</option>
+          <option value="10">10 minutes</option>
+          <option value="15" selected>15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="240">4 hours</option>
+          <option value="720">12 hours</option>
+          <option value="1440">24 hours</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="add-member-form">
+      <input type="text" id="newMemberName" placeholder="Enter new member name...">
+      <div class="role-options">
+        <label class="role-option">
+          <input type="radio" name="newMemberRole" value="regular" checked>
+          Regular Member
+        </label>
+        <label class="role-option">
+          <input type="radio" name="newMemberRole" value="r4r5">
+          R4/R5 Member
+        </label>
+        <label class="role-option">
+          <input type="radio" name="newMemberRole" value="leader">
+          Leader
+        </label>
+      </div>
+      <button id="addMemberBtn">+ Add Member</button>
+    </div>
+    
+    <h4>Current Members</h4>
+    <div class="member-list" id="memberList">
+      <!-- Member items will be added here dynamically -->
+    </div>
+    
+    <div class="import-export-area">
+      <h4>Import/Export Members</h4>
+      <textarea id="membersImportExport" placeholder="Copy member list here to import, or click Export Members to copy the current list..."></textarea>
+      <div>
+        <button id="exportMembersBtn">⬇️ Export Members</button>
+        <button id="importMembersBtn">⬆️ Import Members</button>
+      </div>
+      <p class="reset-notice">Note: Changing members will reset today's train assignment. Previous history will be kept.</p>
+    </div>
+  </div>
+  
+  <!-- Password Dialog -->
+  <div id="passwordDialog" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3 class="modal-title">Admin Access Required</h3>
+      <div class="modal-form">
+        <p>Please enter the admin password to access member management:</p>
+        <input type="password" id="adminPassword" placeholder="Enter password">
+        <div id="passwordError" style="color: #ff6666; margin-top: 5px; display: none;">
+          Incorrect password. Please try again.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelPasswordBtn">Cancel</button>
+        <button id="submitPasswordBtn">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div style="text-align: center;">
+      <div class="close-loader" onclick="forceHideLoading()">X</div>
+      <span class="loader"></span>
+      <div class="loader-text" id="loadingText">Loading data...</div>
+      <div style="margin-top: 20px; color: #aaa;">
+        <button onclick="forceHideLoading()" style="background-color: #444; color: #fff;">Dismiss Loading</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p>SHOO Alliance Train Tracker &copy; 2025</p>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore-compat.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  
+  <script>
+    // Global variable to track if application is loaded
+    let appLoaded = false;
+    
+    // Show loading overlay
+    function showLoading(message = "Loading data...") {
+      document.getElementById("loadingText").textContent = message;
+      document.getElementById("loadingOverlay").classList.remove("hidden");
+    }
+    
+    // Hide loading overlay
+    function hideLoading() {
+      try {
+        document.getElementById("loadingOverlay").classList.add("hidden");
+        console.log("Loading hidden (standard)");
+      } catch (e) {
+        console.error("Error hiding loading:", e);
+      }
+    }
+    
+    // Force hide loading overlay (for user to manually dismiss)
+    function forceHideLoading() {
+      try {
+        // First try the standard way
+        document.getElementById("loadingOverlay").classList.add("hidden");
+        
+        // If that didn't work, try to remove the element entirely
+        setTimeout(() => {
+          const overlay = document.getElementById("loadingOverlay");
+          if (overlay && overlay.style.display !== "none") {
+            overlay.style.display = "none";
+            console.log("Loading hidden using style.display = none");
+            
+            // As a last resort, try to remove the element from the DOM
+            setTimeout(() => {
+              if (overlay && overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+                console.log("Loading hidden by removing from DOM");
+              }
+            }, 100);
+          }
+        }, 100);
+        
+        console.log("Loading hidden (forced by user)");
+      } catch (e) {
+        console.error("Error force-hiding loading:", e);
+        alert("Error hiding the loading screen. Please try refreshing the page.");
+      }
+    }
+    
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQRyrT_vNedX9P6f_IAF_d7Gaq4XVfc44",
+      authDomain: "alliancetraintracker.firebaseapp.com",
+      projectId: "alliancetraintracker",
+      storageBucket: "alliancetraintracker.firebasestorage.app",
+      messagingSenderId: "737773515471",
+      appId: "1:737773515471:web:046343167f0ed017167dba",
+      measurementId: "G-R3TFVLVN8H"
+    };
+    
+    // Initialize Firebase without authentication
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    // Set Firestore settings for better compatibility
+    db.settings({
+      ignoreUndefinedProperties: true,
+      cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+    });
+    
+    // Try to enable offline persistence but don't block the app if it fails
+    db.enablePersistence({ synchronizeTabs: true })
+      .then(() => {
+        console.log("Persistence enabled");
+      })
+      .catch((err) => {
+        if (err.code === 'failed-precondition') {
+          console.warn("Persistence unavailable: Multiple tabs open");
+        } else if (err.code === 'unimplemented') {
+          console.warn("Persistence unavailable: Browser not supported");
+        } else {
+          console.error("Error enabling persistence:", err);
+        }
+      });
+    
+    // Collection names
+    const COLLECTIONS = {
+      MEMBERS: 'members',
+      R4R5: 'r4r5',
+      LEADERS: 'leaders',
+      HISTORY: 'history',
+      PLAYER_HISTORY: 'playerHistory',
+      ASSIGNMENTS: 'assignments',
+      SETTINGS: 'settings',
+      SESSIONS: 'sessions'
+    };
+
+    // Document IDs
+    const DOC_IDS = {
+      MEMBERS_LIST: 'membersList',
+      R4R5_LIST: 'r4r5List',
+      LEADERS_LIST: 'leadersList',
+      ADMIN_SETTINGS: 'adminSettings'
+    };
+    
+    // Default members if none are stored
+    const defaultMembers = ["Gstar79", "Venduro", "anonymous86", "eowynna", "MamaBear861","mamabear junior", "Frank", "George", "Helen", "Ivan", "Julia", "Kevin", "Laura", "Mike", "Nina", "Oscar", "Patty", "Quincy", "Rita", "Steve", "Tina", "Uma", "Victor", "Wendy", "Xander", "Yara", "Zack", "Liam", "Noah", "Olivia", "Emma"];
+    const defaultR4R5 = ["Gstar79", "Venduro", "anonymous86", "eowynna"];
+    const defaultLeaders = ["MamaBear861"];
+    
+    // Default admin settings
+    const defaultAdminSettings = {
+      sessionTimeout: 15, // minutes
+      password: "admin123" // Default password
+    };
+    
+    // Global variables
+    let members = [];
+    let r4r5Members = [];
+    let leaders = [];
+    let adminSettings = {};
+    let playerWagonHistory = {};
+    let currentWagons = [[], [], [], []];
+    
+    // Pagination variables
+    let currentPage = 1;
+    let pageSize = 10;
+    let filteredHistory = [];
+    
+    // Track panel visibility states
+    let historyVisible = false;
+    let memberPanelVisible = false;
+    
+    // Get current server date (using -8 hours offset for server time)
+    const today = new Date();
+    const serverOffset = -8;
+    const serverNow = new Date(today.getTime() + serverOffset * 60 * 60 * 1000);
+    const dateString = serverNow.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const seed = serverNow.toISOString().split('T')[0].split("-").join("");
+    
+    // Display server date
+    document.getElementById("dateDisplay").textContent = `Server Date: ${dateString}`;
+    
+    // Initialize the application
+    async function initializeApp() {
+      showLoading("Initializing app...");
+      try {
+        console.log("Starting app initialization");
+        
+        // Add emergency loading clear button to body
+        const emergencyButton = document.createElement("button");
+        emergencyButton.textContent = "Emergency: Clear Loading Screen";
+        emergencyButton.style.position = "fixed";
+        emergencyButton.style.bottom = "10px";
+        emergencyButton.style.right = "10px";
+        emergencyButton.style.zIndex = "9999";
+        emergencyButton.style.backgroundColor = "#ff3333";
+        emergencyButton.style.color = "white";
+        emergencyButton.style.padding = "10px";
+        emergencyButton.style.borderRadius = "5px";
+        emergencyButton.onclick = function() {
+          forceHideLoading();
+          this.style.display = "none";
+        };
+        // document.body.appendChild(emergencyButton);
+        
+        // Load admin settings first
+        await loadAdminSettings();
+        console.log("Admin settings loaded");
+        
+        // Then load members and roles
+        await loadMembers();
+        console.log("Members loaded:", members.length);
+        
+        // Load player history after members are loaded
+        if (Array.isArray(members) && members.length > 0) {
+          await loadPlayerHistory();
+          console.log("Player history loaded");
+        } else {
+          console.error("Members not loaded properly");
+          // Initialize with empty arrays if loading failed
+          members = [...defaultMembers];
+          r4r5Members = [...defaultR4R5];
+          leaders = [...defaultLeaders];
+          playerWagonHistory = {};
+          initializePlayerHistory();
+        }
+        
+        // Generate today's train assignment
+        showLoading("Generating train assignment...");
+        await generateTrainAssignment();
+        console.log("Train assignment generated");
+        
+        // Display the train
+        displayTrain(currentWagons);
+        console.log("Train displayed");
+        
+        // Setup event listeners
+        setupEventListeners();
+        console.log("Event listeners set up");
+        
+        // Start countdown
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+        
+        // Mark app as loaded so loading can be hidden
+        appLoaded = true;
+        console.log("App initialization complete, marked as loaded");
+        
+        // Now try to hide loading using all methods
+        hideLoading();
+        setTimeout(forceHideLoading, 500);
+        
+        // Remove emergency button after 2 seconds if everything worked
+        setTimeout(() => {
+          if (emergencyButton.parentNode) {
+            emergencyButton.parentNode.removeChild(emergencyButton);
+          }
+        }, 2000);
+      } catch (error) {
+        console.error("Error initializing app:", error);
+        alert("There was an error loading the application. Please try again later or use the emergency button to clear the loading screen.");
+        // Always allow user to dismiss loading on error
+        appLoaded = true;
+        hideLoading();
+        setTimeout(forceHideLoading, 500);
+      }
+    }
+    
+    // Load admin settings from Firestore
+    async function loadAdminSettings() {
+      try {
+        const settingsDoc = await db.collection(COLLECTIONS.SETTINGS).doc(DOC_IDS.ADMIN_SETTINGS).get();
+        
+        if (settingsDoc.exists) {
+          adminSettings = settingsDoc.data();
+        } else {
+          // Create default settings if not exists
+          adminSettings = { ...defaultAdminSettings };
+          await db.collection(COLLECTIONS.SETTINGS).doc(DOC_IDS.ADMIN_SETTINGS).set(adminSettings);
+        }
+      } catch (error) {
+        console.error("Error loading admin settings:", error);
+        adminSettings = { ...defaultAdminSettings };
+      }
+    }
+    
+    // Save admin settings to Firestore
+    async function saveAdminSettings() {
+      try {
+        await db.collection(COLLECTIONS.SETTINGS).doc(DOC_IDS.ADMIN_SETTINGS).set(adminSettings);
+      } catch (error) {
+        console.error("Error saving admin settings:", error);
+        alert("Failed to save admin settings. Please try again.");
+      }
+    }
+    
+    // Load members from Firestore
+    async function loadMembers() {
+      try {
+        // Load members list
+        const membersDoc = await db.collection(COLLECTIONS.MEMBERS).doc(DOC_IDS.MEMBERS_LIST).get();
+        if (membersDoc.exists) {
+          members = membersDoc.data().list;
+        } else {
+          // Create default members if not exists
+          members = [...defaultMembers];
+          await db.collection(COLLECTIONS.MEMBERS).doc(DOC_IDS.MEMBERS_LIST).set({ list: members });
+        }
+        
+        // Load R4/R5 members
+        const r4r5Doc = await db.collection(COLLECTIONS.R4R5).doc(DOC_IDS.R4R5_LIST).get();
+        if (r4r5Doc.exists) {
+          r4r5Members = r4r5Doc.data().list;
+        } else {
+          // Create default R4/R5 if not exists
+          r4r5Members = [...defaultR4R5];
+          await db.collection(COLLECTIONS.R4R5).doc(DOC_IDS.R4R5_LIST).set({ list: r4r5Members });
+        }
+        
+        // Load leaders
+        const leadersDoc = await db.collection(COLLECTIONS.LEADERS).doc(DOC_IDS.LEADERS_LIST).get();
+        if (leadersDoc.exists) {
+          leaders = leadersDoc.data().list;
+        } else {
+          // Create default leaders if not exists
+          leaders = [...defaultLeaders];
+          await db.collection(COLLECTIONS.LEADERS).doc(DOC_IDS.LEADERS_LIST).set({ list: leaders });
+        }
+      } catch (error) {
+        console.error("Error loading members:", error);
+        members = [...defaultMembers];
+        r4r5Members = [...defaultR4R5];
+        leaders = [...defaultLeaders];
+      }
+    }
+    
+    // Save members to Firestore
+    async function saveMembers() {
+      showLoading("Saving members...");
+      try {
+        // Save regular members
+        await db.collection(COLLECTIONS.MEMBERS).doc(DOC_IDS.MEMBERS_LIST).set({ list: members });
+        
+        // Save R4/R5 members
+        await db.collection(COLLECTIONS.R4R5).doc(DOC_IDS.R4R5_LIST).set({ list: r4r5Members });
+        
+        // Save leaders
+        await db.collection(COLLECTIONS.LEADERS).doc(DOC_IDS.LEADERS_LIST).set({ list: leaders });
+        
+        hideLoading();
+      } catch (error) {
+        console.error("Error saving members:", error);
+        alert("Failed to save member list. Please try again.");
+        hideLoading();
+      }
+    }
+    
+    async function loadPlayerHistory() {
+      try {
+        showLoading("Loading player history...");
+        const snapshot = await db.collection(COLLECTIONS.PLAYER_HISTORY).get();
+        playerWagonHistory = {};
+        
+        snapshot.forEach(doc => {
+          playerWagonHistory[doc.id] = doc.data();
+        });
+        
+        // Initialize history for players who don't have it
+        initializePlayerHistory();
+        hideLoading();
+      } catch (error) {
+        console.error("Error loading player history:", error);
+        playerWagonHistory = {};
+        initializePlayerHistory();
+        hideLoading();
+      }
+    }
+    
+    // Save player history to Firestore
+    async function savePlayerHistory() {
+      showLoading("Saving player history...");
+      try {
+        // Create a batch for performance
+        const batch = db.batch();
+        
+        // Update each player's history
+        for (const [player, history] of Object.entries(playerWagonHistory)) {
+          const playerRef = db.collection(COLLECTIONS.PLAYER_HISTORY).doc(player);
+          batch.set(playerRef, history);
+        }
+        
+        // Commit the batch
+        await batch.commit();
+        hideLoading();
+      } catch (error) {
+        console.error("Error saving player history:", error);
+        alert("Failed to save player history. Please try again.");
+        hideLoading();
+      }
+    }
+    
+    // Initialize player history for new players
+    function initializePlayerHistory() {
+      let needsUpdate = false;
+      
+      members.forEach(member => {
+        if (!playerWagonHistory[member]) {
+          playerWagonHistory[member] = {
+            wagonCounts: [0, 0, 0, 0], // Count of times in wagon 1, 2, 3, 4
+            lastWagon: null,           // Last wagon they were assigned to
+            priority: 0                // Priority score for fairer assignment
+          };
+          needsUpdate = true;
+        }
+      });
+      
+      if (needsUpdate) {
+        savePlayerHistory();
+      }
+    }
+    
+    // Get member role
+    function getMemberRole(member) {
+      if (leaders.includes(member)) return 'leader';
+      if (r4r5Members.includes(member)) return 'r4r5';
+      return 'regular';
+    }
+    
+    // Update a member's role
+    function updateMemberRole(member, newRole) {
+      // Remove from all roles first
+      r4r5Members = r4r5Members.filter(m => m !== member);
+      leaders = leaders.filter(m => m !== member);
+      
+      // Add to new role if needed
+      if (newRole === 'r4r5') {
+        r4r5Members.push(member);
+      } else if (newRole === 'leader') {
+        leaders.push(member);
+      }
+      
+      saveMembers();
+    }
+    
+    // Admin authentication functions
+    async function isAdminAuthenticated() {
+      try {
+        const sessionQuery = await db.collection(COLLECTIONS.SESSIONS)
+          .where("expiresAt", ">", new Date())
+          .limit(1)
+          .get();
+        
+        return !sessionQuery.empty;
+      } catch (error) {
+        console.error("Error checking admin authentication:", error);
+        return false;
+      }
+    }
+    
+    async function authenticateAdmin() {
+      try {
+        // Create expiry date based on session timeout
+        const expiryTime = new Date();
+        expiryTime.setMinutes(expiryTime.getMinutes() + adminSettings.sessionTimeout);
+        
+        // Create a new session
+        await db.collection(COLLECTIONS.SESSIONS).add({
+          createdAt: new Date(),
+          expiresAt: expiryTime
+        });
+      } catch (error) {
+        console.error("Error authenticating admin:", error);
+      }
+    }
+    
+    async function logoutAdmin() {
+      try {
+        // Delete all sessions (simplified approach)
+        const sessions = await db.collection(COLLECTIONS.SESSIONS).get();
+        const batch = db.batch();
+        
+        sessions.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        
+        await batch.commit();
+      } catch (error) {
+        console.error("Error logging out admin:", error);
+      }
+    }
+    
+    // Show password dialog
+    function showPasswordDialog(callback) {
+      const dialog = document.getElementById('passwordDialog');
+      const passwordInput = document.getElementById('adminPassword');
+      const errorMsg = document.getElementById('passwordError');
+      
+      // Clear previous input and error
+      passwordInput.value = '';
+      errorMsg.style.display = 'none';
+      
+      // Show dialog
+      dialog.classList.remove('hidden');
+      passwordInput.focus();
+      
+      // Handle submit button
+      const submitBtn = document.getElementById('submitPasswordBtn');
+      const submitHandler = async function() {
+        const enteredPassword = passwordInput.value;
+        
+        if (enteredPassword === adminSettings.password) {
+          // Password correct
+          await authenticateAdmin();
+          dialog.classList.add('hidden');
+          submitBtn.removeEventListener('click', submitHandler);
+          passwordInput.removeEventListener('keydown', keyHandler);
+          if (callback) callback(true);
+        } else {
+          // Password incorrect
+          errorMsg.style.display = 'block';
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
+      };
+      
+      submitBtn.addEventListener('click', submitHandler);
+      
+      // Handle cancel button
+      const cancelBtn = document.getElementById('cancelPasswordBtn');
+      cancelBtn.addEventListener('click', function cancelHandler() {
+        dialog.classList.add('hidden');
+        submitBtn.removeEventListener('click', submitHandler);
+        passwordInput.removeEventListener('keydown', keyHandler);
+        cancelBtn.removeEventListener('click', cancelHandler);
+        if (callback) callback(false);
+      }, { once: true });
+      
+      // Handle Enter key in password field
+      const keyHandler = function(e) {
+        if (e.key === 'Enter') {
+          submitHandler();
+        }
+      };
+      
+      passwordInput.addEventListener('keydown', keyHandler);
+    }
+    
+    // Seeded random functions
+    function seededShuffle(arr, seed) {
+      const out = [...arr];
+      let random = mulberry32(parseInt(seed));
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    }
+
+    function mulberry32(a) {
+      return function() {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+    
+    // Generate train assignment for the day
+    async function generateTrainAssignment() {
+      try {
+        // Make sure any previous loading message is hidden
+        hideLoading();
+        // Show new loading message
+        showLoading("Generating train assignment...");
+        
+        // Check if today's assignment exists
+        const assignmentDoc = await db.collection(COLLECTIONS.ASSIGNMENTS).doc(seed).get();
+        
+        if (assignmentDoc.exists) {
+          // Use the saved assignment for today
+          const assignment = assignmentDoc.data();
+          
+          // Only use if member count matches
+          if (assignment.memberCount === members.length) {
+            // Convert from Firestore format back to array of arrays
+            if (assignment.wagonData) {
+              currentWagons = [
+                assignment.wagonData.wagon0 || [],
+                assignment.wagonData.wagon1 || [],
+                assignment.wagonData.wagon2 || [],
+                assignment.wagonData.wagon3 || [],
+                assignment.wagonData.wagon4 || []
+              ];
+            } else if (assignment.wagons) {
+              // Handle legacy format if it exists
+              currentWagons = assignment.wagons;
+            }
+            
+            // Explicitly hide loading before returning
+            hideLoading();
+            return;
+          }
+        }
+        
+        // Create a new fair assignment for today
+        // First, shuffle members using seed for initial randomness
+        const shuffled = seededShuffle(members, seed);
+        
+        // Then, calculate priority scores for each member
+        shuffled.forEach(member => {
+          const history = playerWagonHistory[member];
+          if (history) {
+            // Higher priority for players who haven't been in wagon 1 much
+            // Lower priority for players who have been in wagon 1 a lot
+            const wagonWeights = [4, 3, 2, 1]; // Weights for wagons 1-4
+            
+            // Calculate weighted score based on past assignments
+            let weightedScore = 0;
+            for (let i = 0; i < 4; i++) {
+              weightedScore += history.wagonCounts[i] * wagonWeights[i];
+            }
+            
+            // Adjust priority: lower score means higher priority for better wagons
+            history.priority = -weightedScore;
+            
+            // Add bonus priority to avoid same wagon twice in a row
+            if (history.lastWagon !== null) {
+              // Add penalty if they were in a good wagon last time
+              history.priority -= (4 - history.lastWagon) * 2;
+            }
+          }
+        });
+        
+        // Sort by priority (higher priority first)
+        const prioritized = [...shuffled].sort((a, b) => {
+          // Higher priority scores first
+          const priorityDiff = (playerWagonHistory[b]?.priority || 0) - (playerWagonHistory[a]?.priority || 0);
+          if (priorityDiff !== 0) return priorityDiff;
+          
+          // If priority is same, leaders get highest preference, then R4/R5
+          const aRole = getMemberRole(a);
+          const bRole = getMemberRole(b);
+          
+          if (aRole === 'leader' && bRole !== 'leader') return -1;
+          if (aRole !== 'leader' && bRole === 'leader') return 1;
+          if (aRole === 'r4r5' && bRole !== 'r4r5') return -1;
+          if (aRole !== 'r4r5' && bRole === 'r4r5') return 1;
+          
+          // Finally, use the seeded random as tiebreaker
+          return 0.5 - mulberry32(parseInt(seed) + a.charCodeAt(0) + b.charCodeAt(0))();
+        });
+        
+        // Take top 20 players after prioritization (or fewer if member count is less)
+        const playerCount = Math.min(20, members.length);
+        const selected = prioritized.slice(0, playerCount);
+        
+        // Initialize wagons (now with 5 wagons, the first being the conductor wagon)
+        let wagons = [[], [], [], [], []];
+        
+        // First, assign a conductor from R4/R5 or leaders
+        // Combine R4/R5 and leaders, filter to ensure they're in members list
+        const conductorCandidates = [...r4r5Members, ...leaders]
+          .filter(member => members.includes(member))
+          .filter((member, index, self) => self.indexOf(member) === index); // Remove duplicates
+        
+        if (conductorCandidates.length > 0) {
+          // Sort conductor candidates by priority too
+          const sortedConductors = conductorCandidates.sort((a, b) => {
+            const aHistory = playerWagonHistory[a] || { conductorCount: 0, priority: 0 };
+            const bHistory = playerWagonHistory[b] || { conductorCount: 0, priority: 0 };
+            
+            // Give higher priority to members who haven't been conductor recently
+            const aConductorCount = aHistory.conductorCount || 0;
+            const bConductorCount = bHistory.conductorCount || 0;
+            
+            // Leaders get priority over R4/R5 if conductor counts are equal
+            if (aConductorCount === bConductorCount) {
+              const aIsLeader = leaders.includes(a);
+              const bIsLeader = leaders.includes(b);
+              if (aIsLeader && !bIsLeader) return -1;
+              if (!aIsLeader && bIsLeader) return 1;
+            }
+            
+            // Sort by conductor count (fewer times = higher priority)
+            return aConductorCount - bConductorCount;
+          });
+          
+          // Take the highest priority conductor
+          const conductor = sortedConductors[0];
+          wagons[0].push(conductor);
+          
+          // Update conductor's history
+          const conductorHistory = playerWagonHistory[conductor];
+          if (conductorHistory) {
+            conductorHistory.conductorCount = (conductorHistory.conductorCount || 0) + 1;
+            conductorHistory.lastWagon = -1; // Special value for conductor
+          }
+          
+          // Remove the conductor from selection if they're in it
+          const conductorIndex = selected.indexOf(conductor);
+          if (conductorIndex !== -1) {
+            selected.splice(conductorIndex, 1);
+          }
+        }
+        
+        // Determine players per wagon for the regular wagons (1-4)
+        const regularPlayerCount = selected.length;
+        const basePlayersPerWagon = Math.floor(regularPlayerCount / 4);
+        const extraPlayers = regularPlayerCount % 4;
+        
+        // Calculate how many players should be in each regular wagon
+        const playersPerWagon = [
+          basePlayersPerWagon + (extraPlayers > 0 ? 1 : 0),
+          basePlayersPerWagon + (extraPlayers > 1 ? 1 : 0),
+          basePlayersPerWagon + (extraPlayers > 2 ? 1 : 0),
+          basePlayersPerWagon
+        ];
+        
+        // Assign players to regular wagons (1-4) based on priority and calculated distribution
+        let currentIndex = 0;
+        for (let wagonIndex = 0; wagonIndex < 4; wagonIndex++) {
+          for (let i = 0; i < playersPerWagon[wagonIndex]; i++) {
+            if (currentIndex < selected.length) {
+              const player = selected[currentIndex];
+              wagons[wagonIndex + 1].push(player); // +1 because wagon 0 is conductor
+              
+              // Update player history
+              const history = playerWagonHistory[player];
+              if (history) {
+                history.wagonCounts[wagonIndex]++;
+                history.lastWagon = wagonIndex;
+              }
+              
+              currentIndex++;
+            }
+          }
+        }
+        
+        // Convert the nested array structure to a format Firestore supports
+        // Use an object with numbered keys instead of an array of arrays
+        const wagonData = {};
+        wagons.forEach((wagonMembers, index) => {
+          wagonData[`wagon${index}`] = wagonMembers;
+        });
+        
+        // Save the assignment
+        await db.collection(COLLECTIONS.ASSIGNMENTS).doc(seed).set({
+          date: seed,
+          wagonData: wagonData,
+          memberCount: members.length,
+          timestamp: new Date()
+        });
+        
+        // Save updated player history
+        await savePlayerHistory();
+        
+        // Save in history
+        await db.collection(COLLECTIONS.HISTORY).doc(seed).set({
+          date: seed,
+          wagonData: wagonData,
+          timestamp: new Date()
+        });
+        
+        // Set the current wagons
+        currentWagons = wagons;
+        
+        // Ensure loading is hidden before returning
+        hideLoading();
+      } catch (error) {
+        console.error("Error generating train assignment:", error);
+        // Make sure to hide loading even on error
+        hideLoading();
+        alert("Failed to generate train assignment. Please try again.");
+      }
+    }
+    
+    // Display wagons on the page
+    function displayTrain(wagons) {
+      // Make sure to hide loading indicator when displaying train
+      hideLoading();
+      
+      const trainEl = document.getElementById("train");
+      trainEl.innerHTML = ""; // Clear previous wagons
+      
+      // First create the conductor wagon
+      if (wagons[0] && wagons[0].length > 0) {
+        const conductorWagon = document.createElement("div");
+        conductorWagon.className = "wagon";
+        conductorWagon.style.borderColor = "#ffcc00"; // Gold border for conductor
+        
+        const conductorHTML = `<h2 style="color: #ffcc00;">Conductor</h2><ul>${wagons[0].map(m => {
+          const history = playerWagonHistory[m];
+          const conductorCount = history ? (history.conductorCount || 0) : 0;
+          const fairnessIndicator = conductorCount > 1 ? `<span class="fairness-indicator" title="Has been conductor ${conductorCount} times">👑</span>` : '';
+          const role = getMemberRole(m);
+          const roleClass = role !== 'regular' ? role : '';
+          return `<li class="${roleClass}">${m}${fairnessIndicator}</li>`;
+        }).join('')}</ul>`;
+        
+        conductorWagon.innerHTML = conductorHTML;
+        trainEl.appendChild(conductorWagon);
+      }
+      
+      // Then create the regular wagons
+      for (let index = 1; index < wagons.length; index++) {
+        const wagonMembers = wagons[index];
+        const wagon = document.createElement("div");
+        wagon.className = "wagon";
+        
+        // Add fairness indicators to show balanced rotation
+        const wagonHTML = `<h2>Wagon ${index}</h2><ul>${wagonMembers.map(m => {
+          const history = playerWagonHistory[m];
+          const totalRides = history ? history.wagonCounts.reduce((a, b) => a + b, 0) : 0;
+          const fairnessIndicator = totalRides > 1 ? `<span class="fairness-indicator" title="Balanced rotation: has been in ${totalRides} different wagons">⚖️</span>` : '';
+          const role = getMemberRole(m);
+          const roleClass = role !== 'regular' ? role : '';
+          return `<li class="${roleClass}">${m}${fairnessIndicator}</li>`;
+        }).join('')}</ul>`;
+        
+        wagon.innerHTML = wagonHTML;
+        trainEl.appendChild(wagon);
+      }
+    }
+    
+    // Process history data for pagination
+    async function loadHistoryData(filter = '', order = 'asc') {
+      showLoading("Loading history...");
+      try {
+        let query = db.collection(COLLECTIONS.HISTORY);
+        
+        // Apply sorting
+        query = query.orderBy("date", order === 'asc' ? 'asc' : 'desc');
+        
+        const snapshot = await query.get();
+        
+        // Process the snapshots
+        const processedHistory = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const year = data.date.substring(0, 4);
+          const month = data.date.substring(4, 6);
+          const day = data.date.substring(6, 8);
+          const readableDate = new Date(`${year}-${month}-${day}`).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+          
+          // Handle different data formats (wagonData or legacy wagons)
+          let wagonLines = [];
+          
+          if (data.wagonData) {
+            // Display conductor first if exists
+            if (data.wagonData.wagon0 && data.wagonData.wagon0.length > 0) {
+              wagonLines.push(`  Conductor: ${data.wagonData.wagon0.join(", ")}`);
+            }
+            
+            // Then regular wagons
+            for (let i = 1; i <= 4; i++) {
+              const wagonMembers = data.wagonData[`wagon${i}`] || [];
+              wagonLines.push(`  Wagon ${i}: ${wagonMembers.join(", ")}`);
+            }
+          } else if (data.wagons) {
+            // Legacy format with array of arrays
+            wagonLines = data.wagons.map((w, i) => `  Wagon ${i + 1}: ${w.join(", ")}`);
+          }
+          
+          // For each date, create an object with the date and wagon info
+          const entry = {
+            date: readableDate,
+            wagons: wagonLines,
+            rawDate: data.date
+          };
+          
+          // Apply filter if provided
+          const wagonText = wagonLines.join(" ");
+          if (!filter || wagonText.toLowerCase().includes(filter.toLowerCase())) {
+            processedHistory.push(entry);
+          }
+        });
+        
+        hideLoading();
+        return processedHistory;
+      } catch (error) {
+        console.error("Error loading history data:", error);
+        hideLoading();
+        return [];
+      }
+    }
+
+    // Format history data for display based on current page
+    function formatPaginatedHistory(historyItems) {
+      if (historyItems.length === 0) {
+        return "No history data found.";
+      }
+      
+      // Determine which items to show based on pagination
+      let displayItems;
+      if (pageSize === -1) {
+        // Show all items
+        displayItems = historyItems;
+      } else {
+        // Show paginated items
+        const startIndex = (currentPage - 1) * pageSize;
+        displayItems = historyItems.slice(startIndex, startIndex + pageSize);
+      }
+      
+      // Format the items for display
+      return displayItems.map(entry => {
+        return `\n${entry.date}:\n` + entry.wagons.join("\n");
+      }).join("\n---------------------------\n");
+    }
+
+    // Update pagination controls
+    function updatePaginationControls() {
+      const totalItems = filteredHistory.length;
+      const totalPageCount = pageSize === -1 ? 1 : Math.ceil(totalItems / pageSize);
+      
+      // Update page numbers
+      document.getElementById("currentPage").textContent = currentPage;
+      document.getElementById("totalPages").textContent = totalPageCount;
+      
+      // Enable/disable prev/next buttons
+      document.getElementById("prevPage").disabled = currentPage <= 1;
+      document.getElementById("nextPage").disabled = currentPage >= totalPageCount;
+    }
+
+    // Update history display with pagination
+    async function updateHistoryDisplay() {
+      const content = document.getElementById("historyContent");
+      const filter = document.getElementById("filterInput").value;
+      const order = document.getElementById("sortOrder").value;
+      
+      // Load and process history data
+      filteredHistory = await loadHistoryData(filter, order);
+      
+      // Ensure current page is valid
+      const totalPageCount = pageSize === -1 ? 1 : Math.ceil(filteredHistory.length / pageSize);
+      if (currentPage > totalPageCount && totalPageCount > 0) {
+        currentPage = totalPageCount;
+      } else if (currentPage < 1 || totalPageCount === 0) {
+        currentPage = 1;
+      }
+      
+      // Format and display current page
+      content.textContent = formatPaginatedHistory(filteredHistory);
+      
+      // Update pagination controls
+      updatePaginationControls();
+    }
+    
+    // Generate fairness statistics
+    function generateFairnessStats() {
+      // Analyze fairness stats
+      const stats = {
+        totalRides: {},
+        wagonDistribution: {},
+        conductorCount: {}
+      };
+      
+      // Count total rides and wagon distribution for each player
+      members.forEach(member => {
+        const history = playerWagonHistory[member];
+        if (history) {
+          stats.totalRides[member] = history.wagonCounts.reduce((a, b) => a + b, 0);
+          stats.wagonDistribution[member] = [...history.wagonCounts];
+          stats.conductorCount[member] = history.conductorCount || 0;
+        }
+      });
+      
+      // Generate HTML for stats
+      let html = '<table>';
+      html += '<tr><th style="text-align:left;">Player</th>';
+      html += '<th style="text-align:center;">Conductor</th>';
+      html += '<th style="text-align:center;">Total</th>';
+      html += '<th style="text-align:center;">W1</th>';
+      html += '<th style="text-align:center;">W2</th>';
+      html += '<th style="text-align:center;">W3</th>';
+      html += '<th style="text-align:center;">W4</th></tr>';
+      
+      // Only show players who have been on the train
+      const activePlayers = members.filter(m => stats.totalRides[m] > 0 || stats.conductorCount[m] > 0)
+        .sort((a, b) => {
+          // First sort by role (leaders first, then R4R5, then regular)
+          const aRole = getMemberRole(a);
+          const bRole = getMemberRole(b);
+          
+          if (aRole === 'leader' && bRole !== 'leader') return -1;
+          if (aRole !== 'leader' && bRole === 'leader') return 1;
+          if (aRole === 'r4r5' && bRole !== 'r4r5') return -1;
+          if (aRole !== 'r4r5' && bRole === 'r4r5') return 1;
+          
+          // Then by conductor count (higher first)
+          const aConductor = stats.conductorCount[a] || 0;
+          const bConductor = stats.conductorCount[b] || 0;
+          if (aConductor !== bConductor) return bConductor - aConductor;
+          
+          // Then by total rides
+          return stats.totalRides[b] - stats.totalRides[a];
+        });
+      
+      activePlayers.forEach(player => {
+        const role = getMemberRole(player);
+        const distro = stats.wagonDistribution[player] || [0,0,0,0];
+        const conductorCount = stats.conductorCount[player] || 0;
+        
+        // Set color based on role
+        let styleColor = '';
+        if (role === 'r4r5') styleColor = 'color:gold; font-weight:bold;';
+        else if (role === 'leader') styleColor = 'color:#cc44ff; font-weight:bold;';
+        
+        html += `<tr>
+          <td style="text-align:left; ${styleColor}">${player}</td>
+          <td style="text-align:center; ${conductorCount > 0 ? 'color:#ffcc00; font-weight:bold;' : ''}">${conductorCount}</td>
+          <td style="text-align:center;">${stats.totalRides[player]}</td>
+          <td style="text-align:center;">${distro[0]}</td>
+          <td style="text-align:center;">${distro[1]}</td>
+          <td style="text-align:center;">${distro[2]}</td>
+          <td style="text-align:center;">${distro[3]}</td>
+        </tr>`;
+      });
+      
+      html += '</table>';
+      
+      // Add a small explanation about the fairness system
+      html += '<p style="font-size:0.8rem; margin-top:15px; color:#aaa;">The system ensures players rotate through different wagons over time. Conductors are chosen from R4/R5 and leaders. Regular wagons 1-4 are assigned by priority, with wagon 1 having the best rewards.</p>';
+      
+      return html;
+    }
+    
+    // Render the member list
+    function renderMemberList() {
+      const memberListEl = document.getElementById("memberList");
+      memberListEl.innerHTML = ""; // Clear the list
+      
+      // Sort members - Leaders first, then R4/R5, then regular members, all alphabetically within groups
+      const sortedMembers = [...members].sort((a, b) => {
+        const aRole = getMemberRole(a);
+        const bRole = getMemberRole(b);
+        
+        // Leaders come first
+        if (aRole === 'leader' && bRole !== 'leader') return -1;
+        if (aRole !== 'leader' && bRole === 'leader') return 1;
+        
+        // Then R4/R5
+        if (aRole === 'r4r5' && bRole !== 'r4r5') return -1;
+        if (aRole !== 'r4r5' && bRole === 'r4r5') return 1;
+        
+        // Alphabetically within groups
+        return a.localeCompare(b);
+      });
+      
+      // Add each member to the list
+      sortedMembers.forEach(member => {
+        const role = getMemberRole(member);
+        const memberItem = document.createElement("div");
+        memberItem.className = `member-item ${role !== 'regular' ? role : ''}`;
+        
+        // Create role tag based on member role
+        let roleTag = '';
+        let roleToggleContent = '';
+        
+        if (role === 'leader') {
+          roleTag = '<span class="role-tag leader-tag">Leader</span>';
+          roleToggleContent = '👑';
+        } else if (role === 'r4r5') {
+          roleTag = '<span class="role-tag r4r5-tag">R4/R5</span>';
+          roleToggleContent = '⭐';
+        } else {
+          roleToggleContent = '☆';
+        }
+        
+        memberItem.innerHTML = `
+          ${role !== 'regular' ? roleTag : ''}
+          <span>${member}</span>
+          <span class="member-role-toggle ${role !== 'regular' ? `role-${role}` : ''}" title="Change role">${roleToggleContent}</span>
+          <span class="member-delete" title="Remove member">✕</span>
+        `;
+        
+        // Add event listener for deleting member
+        memberItem.querySelector(".member-delete").addEventListener("click", () => {
+          if (members.length <= 4) {
+            alert("You need at least 4 members for the train system to work properly.");
+            return;
+          }
+          
+          if (confirm(`Are you sure you want to remove ${member} from the alliance?`)) {
+            members = members.filter(m => m !== member);
+            r4r5Members = r4r5Members.filter(m => m !== member);
+            leaders = leaders.filter(m => m !== member);
+            saveMembers();
+            renderMemberList();
+          }
+        });
+        
+        // Add event listener for cycling through roles
+        memberItem.querySelector(".member-role-toggle").addEventListener("click", () => {
+          // Cycle through roles: regular -> r4r5 -> leader -> regular
+          if (role === 'regular') {
+            updateMemberRole(member, 'r4r5');
+          } else if (role === 'r4r5') {
+            updateMemberRole(member, 'leader');
+          } else if (role === 'leader') {
+            updateMemberRole(member, 'regular');
+          }
+          
+          renderMemberList();
+        });
+        
+        memberListEl.appendChild(memberItem);
+      });
+    }
+    
+    function toggleMemberPanel() {
+      const panel = document.getElementById("memberPanel");
+      const memberBtn = document.getElementById("memberBtn");
+      
+      // Toggle the member panel visibility state
+      memberPanelVisible = !memberPanelVisible;
+      
+      // Apply the visibility
+      panel.style.display = memberPanelVisible ? "block" : "none";
+      
+      // Update button text
+      memberBtn.textContent = memberPanelVisible ? "👥 Hide Members" : "🔐 Manage Members";
+      
+      // If showing panel, hide history (if visible) and render members
+      if (memberPanelVisible) {
+        // If history is visible, hide it first
+        if (historyVisible) {
+          document.getElementById("historyLog").style.display = "none";
+          document.getElementById("historyBtn").textContent = "📜 Show History";
+          historyVisible = false;
+        }
+        
+        // Render members and scroll to panel
+        renderMemberList();
+        panel.scrollIntoView({ behavior: "smooth" });
+        
+        // Update settings display
+        document.getElementById("sessionTimeout").value = adminSettings.sessionTimeout;
+      }
+    }
+    
+    // Update countdown
+    function updateCountdown() {
+      const now = new Date();
+      const nextMidnight = new Date(Date.UTC(serverNow.getUTCFullYear(), serverNow.getUTCMonth(), serverNow.getUTCDate() + 1));
+      const diff = nextMidnight - (new Date(now.getTime() + serverOffset * 60 * 60 * 1000));
+      const hrs = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      document.getElementById("countdown").textContent = `Next train in: ${hrs}h ${mins}m ${secs}s (Server Time)`;
+    }
+    
+    // Setup event listeners
+    function setupEventListeners() {
+      // History button
+      document.getElementById("historyBtn").addEventListener("click", function() {
+        const log = document.getElementById("historyLog");
+        const historyBtn = document.getElementById("historyBtn");
+        
+        // If member panel is visible, hide it first
+        if (memberPanelVisible) {
+          document.getElementById("memberPanel").style.display = "none";
+          document.getElementById("memberBtn").textContent = "🔐 Manage Members";
+          memberPanelVisible = false;
+        }
+        
+        // Toggle the history visibility state
+        historyVisible = !historyVisible;
+        
+        // Apply the visibility
+        log.style.display = historyVisible ? "block" : "none";
+        
+        // Update button text
+        historyBtn.textContent = historyVisible ? "📜 Hide History" : "📜 Show History";
+        
+        // Only load content and scroll if we're showing the history
+        if (historyVisible) {
+          updateHistoryDisplay();
+          
+          // Scroll to history section
+          log.scrollIntoView({ behavior: "smooth" });
+        }
+      });
+      
+      // Member button
+      document.getElementById("memberBtn").addEventListener("click", async function() {
+        // If already authenticated, show the panel directly
+        if (await isAdminAuthenticated()) {
+          toggleMemberPanel();
+        } else {
+          // Otherwise, show password dialog
+          showPasswordDialog(function(success) {
+            if (success) {
+              toggleMemberPanel();
+            }
+          });
+        }
+      });
+      
+      // View stats button
+      document.getElementById("viewStatsBtn").addEventListener("click", () => {
+        const statsPanel = document.getElementById("statsPanel");
+        const statsContent = document.getElementById("statsContent");
+        
+        // Toggle stats panel
+        if (statsPanel.style.display === "none") {
+          statsContent.innerHTML = generateFairnessStats();
+          statsPanel.style.display = "block";
+        } else {
+          statsPanel.style.display = "none";
+        }
+      });
+      
+      // Settings panel
+      document.getElementById("settingsBtn").addEventListener("click", function() {
+        const settingsPanel = document.getElementById("settingsPanel");
+        settingsPanel.style.display = settingsPanel.style.display === "none" ? "block" : "none";
+      });
+      
+      // Change password
+      document.getElementById("changePasswordBtn").addEventListener("click", async function() {
+        const newPassword = document.getElementById("newPassword").value.trim();
+        
+        if (!newPassword) {
+          alert("Please enter a new password.");
+          return;
+        }
+        
+        adminSettings.password = newPassword;
+        await saveAdminSettings();
+        document.getElementById("newPassword").value = "";
+        alert("Admin password updated successfully!");
+      });
+      
+      // Session timeout
+      document.getElementById("sessionTimeout").addEventListener("change", async function() {
+        adminSettings.sessionTimeout = parseInt(this.value);
+        await saveAdminSettings();
+      });
+      
+      // Pagination - Previous page
+      document.getElementById("prevPage").addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage--;
+          updateHistoryDisplay();
+        }
+      });
+      
+      // Pagination - Next page
+      document.getElementById("nextPage").addEventListener("click", () => {
+        const totalPageCount = pageSize === -1 ? 1 : Math.ceil(filteredHistory.length / pageSize);
+        if (currentPage < totalPageCount) {
+          currentPage++;
+          updateHistoryDisplay();
+        }
+      });
+      
+      // Page size
+      document.getElementById("pageSize").addEventListener("change", function() {
+        pageSize = parseInt(this.value);
+        currentPage = 1; // Reset to first page when changing page size
+        updateHistoryDisplay();
+      });
+      
+      // Filter input
+      document.getElementById("filterInput").addEventListener("input", () => {
+        currentPage = 1; // Reset to first page when filtering
+        updateHistoryDisplay();
+      });
+      
+      // Sort order
+      document.getElementById("sortOrder").addEventListener("change", updateHistoryDisplay);
+      
+      // Export history button
+      document.getElementById("exportBtn").addEventListener("click", async () => {
+        // Get all history (no pagination or filtering)
+        const allHistory = await loadHistoryData();
+        const content = formatPaginatedHistory(allHistory);
+        const blob = new Blob([content], { type: 'text/plain' });
+        const link = document.createElement("a");
+        link.download = `SHOO-train-history-${new Date().toISOString().split('T')[0]}.txt`;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+      });
+      
+      // Add member button
+      document.getElementById("addMemberBtn").addEventListener("click", async () => {
+        const nameInput = document.getElementById("newMemberName");
+        const roleInputs = document.getElementsByName("newMemberRole");
+        
+        const memberName = nameInput.value.trim();
+        
+        if (!memberName) {
+          alert("Please enter a member name.");
+          return;
+        }
+        
+        if (members.includes(memberName)) {
+          alert("This member already exists in the list.");
+          return;
+        }
+        
+        // Find selected role
+        let selectedRole = 'regular';
+        for (const input of roleInputs) {
+          if (input.checked) {
+            selectedRole = input.value;
+            break;
+          }
+        }
+        
+        // Add the new member
+        members.push(memberName);
+        
+        // Add to role lists if needed
+        if (selectedRole === 'r4r5') {
+          r4r5Members.push(memberName);
+        } else if (selectedRole === 'leader') {
+          leaders.push(memberName);
+        }
+        
+        // Initialize player history for the new member
+        playerWagonHistory[memberName] = {
+          wagonCounts: [0, 0, 0, 0],
+          lastWagon: null,
+          priority: 0
+        };
+        
+        // Save the updated lists
+        await saveMembers();
+        await savePlayerHistory();
+        
+        // Clear the input fields
+        nameInput.value = "";
+        roleInputs[0].checked = true; // Reset to "Regular Member"
+        
+        // Re-render the member list
+        renderMemberList();
+      });
+      
+      // Refresh train button
+      document.getElementById("refreshTrainBtn").addEventListener("click", async () => {
+        if (confirm("Are you sure you want to regenerate today's train assignment? This will create a new distribution based on the current member list.")) {
+          // Delete today's assignment so it will be regenerated
+          try {
+            await db.collection(COLLECTIONS.ASSIGNMENTS).doc(seed).delete();
+          } catch (e) {
+            console.error("Error deleting assignment:", e);
+          }
+          
+          // Generate and display new assignment
+          await generateTrainAssignment();
+          displayTrain(currentWagons);
+          
+          alert("Train assignment has been refreshed!");
+        }
+      });
+      
+      // Backup members button
+      document.getElementById("backupMembersBtn").addEventListener("click", async () => {
+        try {
+          const timestamp = new Date().toISOString();
+          await db.collection("backups").doc(`members_${timestamp}`).set({
+            members: members,
+            r4r5: r4r5Members,
+            leaders: leaders,
+            timestamp: timestamp
+          });
+          alert("Member list backed up! You can restore this backup if needed.");
+        } catch (error) {
+          console.error("Error backing up members:", error);
+          alert("Failed to back up members. Please try again.");
+        }
+      });
+      
+      // Export members button
+      document.getElementById("exportMembersBtn").addEventListener("click", () => {
+        const textarea = document.getElementById("membersImportExport");
+        const exportData = {
+          members: members,
+          r4r5: r4r5Members,
+          leaders: leaders
+        };
+        textarea.value = JSON.stringify(exportData, null, 2);
+        textarea.select();
+        document.execCommand("copy");
+        alert("Member list copied to clipboard and displayed in the text area. You can save this for backup.");
+      });
+      
+      // Import members button
+      document.getElementById("importMembersBtn").addEventListener("click", async () => {
+        const textarea = document.getElementById("membersImportExport");
+        const importText = textarea.value.trim();
+        
+        if (!importText) {
+          alert("Please paste a member list in the text area before importing.");
+          return;
+        }
+        
+        try {
+          const importData = JSON.parse(importText);
+          
+          if (!importData.members || !Array.isArray(importData.members) || importData.members.length < 4) {
+            throw new Error("Invalid member list format or not enough members (minimum 4).");
+          }
+          
+          if (confirm("Are you sure you want to replace the current member list? This will reset today's train assignment.")) {
+            // Backup current list first
+            const timestamp = new Date().toISOString();
+            await db.collection("backups").doc(`members_${timestamp}`).set({
+              members: members,
+              r4r5: r4r5Members,
+              leaders: leaders,
+              timestamp: timestamp
+            });
+            
+            // Update members
+            members = importData.members;
+            
+            // Update roles (with backward compatibility for old format)
+            if (Array.isArray(importData.r4r5)) {
+              r4r5Members = importData.r4r5.filter(m => members.includes(m));
+            } else if (Array.isArray(importData.vips)) {
+              // Handle old format with VIPs
+              const oldVips = importData.vips.filter(m => members.includes(m));
+              r4r5Members = oldVips.filter(v => !importData.leaders || !importData.leaders.includes(v));
+            } else {
+              r4r5Members = [];
+            }
+            
+            if (Array.isArray(importData.leaders)) {
+              leaders = importData.leaders.filter(m => members.includes(m));
+            } else {
+              leaders = [];
+            }
+            
+            // Save the updated lists
+            await saveMembers();
+            
+            // Initialize history for new members
+            initializePlayerHistory();
+            
+            // Delete today's assignment to force regeneration
+            try {
+              await db.collection(COLLECTIONS.ASSIGNMENTS).doc(seed).delete();
+            } catch (e) {
+              console.error("Error deleting assignment:", e);
+            }
+            
+            // Generate and display new assignment
+            await generateTrainAssignment();
+            displayTrain(currentWagons);
+            
+            // Re-render the member list
+            renderMemberList();
+            
+            alert("Member list imported successfully!");
+          }
+        } catch (error) {
+          alert("Error importing member list: " + error.message);
+        }
+      });
+      
+      // Screenshot button
+      document.getElementById("screenshotBtn").addEventListener("click", () => {
+        html2canvas(document.body).then(canvas => {
+          const link = document.createElement("a");
+          link.download = `SHOO-train-roster-${seed}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+        });
+      });
+    }
+    
+    // Initialize the app once page is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Start the app initialization
+      initializeApp();
+      
+    //   // Add a manual dismiss option after 5 seconds even if appLoaded is never set to true
+    //   setTimeout(() => {
+    //     if (!appLoaded) {
+    //       console.log("App not marked as loaded after 5 seconds, enabling manual dismiss");
+    //       const loadingOverlay = document.getElementById("loadingOverlay");
+    //       if (!loadingOverlay.classList.contains("hidden")) {
+    //         const dismissText = document.createElement("p");
+    //         dismissText.style.color = "#ff6666";
+    //         dismissText.style.marginTop = "20px";
+    //         dismissText.textContent = "Loading is taking longer than expected. You can click anywhere or the X button to dismiss.";
+    //         document.querySelector("#loadingOverlay > div").appendChild(dismissText);
+    //       }
+    //     }
+    //   }, 5000);
+    });
+  </script>
+</body>
+</html>
