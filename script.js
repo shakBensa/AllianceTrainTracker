@@ -33,16 +33,16 @@ const DEFAULT_MEMBERS = [
 
 // Conductor rotation order
 const CONDUCTOR_ROTATION = [
-  "anonymous86",    // index 0
+  "DeanThePenguin", // index 0
   "MamaBear861",    // index 1
   "Venduro",        // index 2
   "Gstar79",        // index 3
-  "DeanThePenguin", // index 4
+  "anonymous86",    // index 4
   "Relentless74",   // index 5
   "Yassler",        // index 6
   "eowynna",        // index 7
   "Mapache000",     // index 8
-  "mamabear junior", // index 9
+  "mamabear junior",// index 9
   "Spliffaholic"    // index 10
 ];
 
@@ -1513,7 +1513,13 @@ function formatTimeUntil(timeObj) {
 
 // Start Server Time Updates
 function startTimeUpdates() {
-  // Calculate the offset needed to show 17:00 (5:00 PM)
+  // Track the last date we checked for a new train
+  let lastCheckedDate = formatDate(new Date());
+  console.log(`Initial lastCheckedDate: ${lastCheckedDate}`);
+  
+  // Variables to track day change
+  let currentDay = new Date().getDate();
+  
   const updateTime = () => {
     // Get actual server time
     const actualTime = new Date();
@@ -1531,13 +1537,47 @@ function startTimeUpdates() {
     // Update UI
     serverTimeElement.textContent = `Server Time: ${formatTime(state.serverTime)}`;
     nextTrainElement.textContent = `Next Train: ${formatTimeUntil(state.timeUntilNextTrain)}`;
+    
+    // Check if the day has changed
+    const newDay = actualTime.getDate();
+    const formattedToday = formatDate(actualTime);
+    
+    if (newDay !== currentDay || formattedToday !== lastCheckedDate) {
+      console.log(`Day has changed! Previous: ${currentDay}, Current: ${newDay}`);
+      console.log(`Date check: Previous: ${lastCheckedDate}, Current: ${formattedToday}`);
+      
+      // Update tracking variables
+      currentDay = newDay;
+      lastCheckedDate = formattedToday;
+      
+      // Check if we need to generate a new train for the new day
+      checkAndGenerateNewDailyTrain()
+        .then(generated => {
+          if (generated) {
+            console.log('New train generated automatically for the new day!');
+            // Reload the train history to make sure it's up to date
+            loadTrainHistory().then(() => {
+              // Re-render the trains view if it's currently visible
+              if (!state.isLoading && !trainContainer.classList.contains('hidden')) {
+                renderTrains();
+              }
+            });
+          } else {
+            console.log('No new train was generated for the new day (one may already exist)');
+          }
+        })
+        .catch(error => {
+          console.error('Error checking for or generating new daily train:', error);
+        });
+    }
   };
   
   // Initial update
   updateTime();
   
-  // Set interval for updates
-  setInterval(updateTime, 1000);
+  // Set interval for updates - check every minute (instead of every second)
+  // to reduce server load while still ensuring timely train generation
+  setInterval(updateTime, 60000); // 60000 ms = 1 minute
 }
 
 // Rendering Functions
@@ -2600,62 +2640,39 @@ async function generateNewTrain() {
             return false;
           }
           
-          console.log('User chose to create a new train assignment anyway');
+          console.log('User chose to create a new train assignment');
         }
       } else {
         console.log('No existing train assignments found for today');
       }
     } catch (err) {
       console.error('Error checking for existing train assignments:', err);
-      // Continue anyway
     }
     
-    // Generate new train assignment
-    console.log('Generating new train assignment');
-    const newWagons = generateTrainAssignment(
-      state.members,
-      state.leaders,
-      state.r4r5Members,
-      state.playerWagonHistory || {}
-    );
+    // Generate a new train assignment
+    console.log('Generating new train assignment...');
     
-    console.log('New train assignment generated:', newWagons);
+    // Use the common train generation logic
+    state.currentWagons = generateNewTrainLogic();
     
-    // Save to Firestore with a unique ID
-    console.log('Saving new train assignment to Firestore');
-    showLoading(); // Show loading indicator during save
-    const saved = await addTrainRotation(newWagons);
-    hideLoading(); // Hide loading indicator when done
-    
-    if (saved) {
-      // Update current wagons
-      state.currentWagons = newWagons;
+    try {
+      // Add the rotation to Firestore
+      await addTrainRotation(state.currentWagons);
       
-      // Refresh the train display
+      console.log('Train rotation added to Firestore successfully');
+      
+      // Render the new train
       renderTrains();
       
-      // Reload train history so we have the new entry
-      await loadTrainHistory();
-      
-      console.log('New train generated and saved successfully');
-      alert('New train generated successfully!');
       return true;
-    } else {
-      console.log('Train assignment was not saved - likely because one already exists for today');
-      
-      // If not saved, it's likely because one already exists - reload train history
-      await loadTrainHistory();
-      
-      // And re-render with the loaded data
-      renderTrains();
-      
-      alert('A train assignment already exists for today. Using the existing assignment.');
+    } catch (error) {
+      console.error('Error adding train rotation:', error);
+      alert('Error generating train. Please try again.');
       return false;
     }
   } catch (error) {
-    console.error('Error generating new train:', error);
-    alert(`Error generating new train: ${error.message}`);
-    hideLoading(); // Make sure to hide loading indicator on error
+    console.error('Error in generateNewTrain:', error);
+    alert('Error generating train. Please try again.');
     return false;
   }
 }
@@ -4158,31 +4175,86 @@ async function checkAndGenerateNewDailyTrain() {
     console.log(`Today's date for train assignment: ${todayDate}`);
     
     // Check if a train assignment already exists for today
-    const existingDoc = await db.collection(COLLECTIONS.TRAIN_HISTORY).doc(todayDate).get();
+    let existingAssignment = false;
     
-    if (existingDoc.exists) {
-      console.log(`Train assignment already exists for today (${todayDate}). No need to generate a new one.`);
+    // First try to find by document ID
+    try {
+      const existingDoc = await db.collection(COLLECTIONS.TRAIN_HISTORY).doc(todayDate).get();
       
-      // Load the existing assignment into state.currentWagons if it has valid wagons
-      const data = existingDoc.data();
-      if (data && data.wagons && Array.isArray(data.wagons) && data.wagons.length > 0) {
-        console.log(`Loading existing train assignment with ${data.wagons.length} wagons.`);
-        state.currentWagons = [...data.wagons];
-        return false; // No new assignment generated
-      } else {
-        console.log('Existing train assignment has invalid wagon data. Will generate a new one.');
-        // Continue to generate a new assignment
+      if (existingDoc.exists) {
+        console.log(`Train assignment already exists for today with ID: ${todayDate}`);
+        
+        // Load the existing assignment into state.currentWagons if it has valid wagons
+        const data = existingDoc.data();
+        if (data && data.wagons && Array.isArray(data.wagons) && data.wagons.length > 0) {
+          console.log(`Loading existing train assignment with ${data.wagons.length} wagons.`);
+          state.currentWagons = [...data.wagons];
+          existingAssignment = true;
+        } else {
+          console.log('Existing train assignment has invalid wagon data.');
+        }
       }
-    } else {
-      console.log(`No train assignment found for today (${todayDate}). Generating a new one.`);
+    } catch (error) {
+      console.error('Error checking for train assignment by ID:', error);
     }
+    
+    // If not found by ID, try querying by date field as backup
+    if (!existingAssignment) {
+      try {
+        const querySnapshot = await db.collection(COLLECTIONS.TRAIN_HISTORY)
+          .where('date', '==', todayDate)
+          .get();
+          
+        if (!querySnapshot.empty) {
+          console.log(`Found ${querySnapshot.size} train assignments for today by date field.`);
+          
+          // Get the most recent one
+          let mostRecent = null;
+          querySnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data && data.wagons && Array.isArray(data.wagons) && data.wagons.length > 0) {
+              if (!mostRecent || (data.timestamp && mostRecent.timestamp && 
+                  data.timestamp.toDate().getTime() > mostRecent.timestamp.toDate().getTime())) {
+                mostRecent = data;
+                mostRecent.id = doc.id;
+              }
+            }
+          });
+          
+          if (mostRecent) {
+            console.log(`Using most recent valid train assignment for today: ${mostRecent.id}`);
+            state.currentWagons = [...mostRecent.wagons];
+            existingAssignment = true;
+          }
+        }
+      } catch (error) {
+        console.error('Error querying for train assignments by date field:', error);
+      }
+    }
+    
+    // If we found a valid assignment for today, exit
+    if (existingAssignment) {
+      console.log('Valid train assignment for today already exists. No need to generate a new one.');
+      return false;
+    }
+    
+    console.log(`No valid train assignment found for today (${todayDate}). Generating a new one.`);
     
     // Proceed with generating a new train assignment
     
     // Ensure we have members to assign
     if (!state.members || state.members.length === 0) {
       console.error('Cannot generate train assignment: No members available.');
-      return false;
+      // Try to load members first
+      try {
+        await loadMembers();
+        if (!state.members || state.members.length === 0) {
+          throw new Error('Still no members after loading');
+        }
+      } catch (membersError) {
+        console.error('Failed to load members:', membersError);
+        return false;
+      }
     }
     
     // Generate the new train assignment
@@ -4201,24 +4273,13 @@ async function checkAndGenerateNewDailyTrain() {
       // Create a specific document ID based on today's date
       const docRef = db.collection(COLLECTIONS.TRAIN_HISTORY).doc(todayDate);
       
-      // Convert wagons array to Firestore format
-      const wagonsForFirestore = newWagons.map(wagon => {
-        return {
-          ...wagon,
-          members: wagon.members.map(member => ({
-            id: member.id,
-            name: member.name,
-            rank: member.rank || 'Member'
-          }))
-        };
-      });
-      
       // Set the document with the wagon data
       await docRef.set({
-        wagons: wagonsForFirestore,
-        wagonCount: wagonsForFirestore.length,
+        wagons: newWagons,
+        wagonCount: newWagons.length,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        date: todayDate
+        date: todayDate,
+        autoGenerated: true
       });
       
       console.log(`Successfully saved new train assignment to Firestore with ID: ${todayDate}`);
@@ -4742,4 +4803,34 @@ function captureScreenshot() {
       hideLoading();
     });
   }, 300); // Short delay to ensure DOM is ready
+}
+
+// Generate Train Logic - Helper function for new and daily trains
+function generateNewTrainLogic() {
+  console.log('Generating new train logic...');
+  
+  // Make sure we have members to assign
+  if (!state.members || state.members.length === 0) {
+    console.log('No members found, using default members');
+    state.members = DEFAULT_MEMBERS;
+  }
+  
+  if (!state.leaders || state.leaders.length === 0) {
+    console.log('No leaders found, using default leaders');
+    state.leaders = DEFAULT_MEMBERS.filter(m => m.role === 'leader').map(m => m.id);
+  }
+  
+  if (!state.r4r5Members || state.r4r5Members.length === 0) {
+    console.log('No R4/R5 members found, using default R4/R5 members');
+    state.r4r5Members = DEFAULT_MEMBERS.filter(m => m.role === 'r4r5').map(m => m.id);
+  }
+  
+  const newWagons = generateTrainAssignment(
+    state.members,
+    state.leaders,
+    state.r4r5Members,
+    state.playerWagonHistory
+  );
+  
+  return newWagons;
 }
