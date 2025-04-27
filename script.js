@@ -34,10 +34,10 @@ const DEFAULT_MEMBERS = [
 // Conductor rotation order
 const CONDUCTOR_ROTATION = [
   "DeanThePenguin", // index 0
-  "MamaBear861",    // index 1
+  "anonymous86",    // index 1
   "Venduro",        // index 2
   "Gstar79",        // index 3
-  "anonymous86",    // index 4
+  "MamaBear861",    // index 4
   "Relentless74",   // index 5
   "Yassler",        // index 6
   "eowynna",        // index 7
@@ -877,73 +877,118 @@ async function loadTrainHistory() {
     const today = new Date();
     const todayFormatted = formatDate(today);
     
-    // Try to get today's assignment first directly by ID
-    try {
-      const todayDoc = await db.collection(COLLECTIONS.TRAIN_HISTORY).doc(todayFormatted).get();
+    // Load all train history entries (no limit, sorted by timestamp)
+    const historySnapshot = await db.collection(COLLECTIONS.TRAIN_HISTORY)
+      .orderBy('timestamp', 'desc')
+      .get();
+    
+    // Reset state.trainHistory array
+    state.trainHistory = [];
+    
+    // Process the history snapshot
+    if (historySnapshot.empty) {
+      console.log('No train history found');
+    } else {
+      // Convert documents to array entries
+      historySnapshot.forEach(doc => {
+        const history = doc.data();
+        // Add document ID properties for consistency in references
+        history.id = doc.id;
+        history.docId = doc.id;
+        state.trainHistory.push(history);
+      });
       
-      if (todayDoc.exists) {
-        const data = todayDoc.data();
-        if (data && data.wagons && Array.isArray(data.wagons) && data.wagons.length > 0) {
-          console.log(`Found today's train assignment with ${data.wagons.length} wagons`);
-          state.currentWagons = [...data.wagons];
-          return true;
-        } else {
-          console.log("Today's document exists but has invalid wagon data");
-        }
+      console.log(`Loaded ${state.trainHistory.length} train history records`);
+      
+      // Specifically log today's entry if it exists
+      const todayEntries = state.trainHistory.filter(h => h.date === todayFormatted);
+      if (todayEntries.length > 0) {
+        console.log(`Found ${todayEntries.length} entries for today (${todayFormatted})`);
+        todayEntries.forEach((entry, i) => {
+          console.log(`Today's entry #${i+1}:`, {
+            id: entry.id,
+            wagons: entry.wagons ? entry.wagons.length : 0
+          });
+        });
       } else {
-        console.log(`No train assignment found for today (${todayFormatted})`);
+        console.log(`No entries found for today (${todayFormatted})`);
       }
-    } catch (todayError) {
-      console.error('Error getting today\'s train assignment:', todayError);
     }
     
-    // If we don't have today's assignment, get the most recent one
-    try {
-      const historySnapshot = await db.collection(COLLECTIONS.TRAIN_HISTORY)
-        .orderBy('timestamp', 'desc')
-        .limit(10)
-        .get();
-      
-      if (historySnapshot.empty) {
-        console.log('No train history found at all');
-      } else {
-        state.trainHistory = [];
-        historySnapshot.forEach(doc => {
-          const history = doc.data();
-          history.id = doc.id;
-          state.trainHistory.push(history);
-        });
+    // Now handle today's train for the main display
+    let todayTrainFound = false;
+    
+    // First, try to find today's train in the loaded history
+    const todayTrain = state.trainHistory.find(h => h.date === todayFormatted);
+    if (todayTrain && todayTrain.wagons && Array.isArray(todayTrain.wagons) && todayTrain.wagons.length > 0) {
+      console.log(`Using today's train from history with ID: ${todayTrain.id}`);
+      state.currentWagons = [...todayTrain.wagons];
+      todayTrainFound = true;
+    }
+    
+    // If not found in history, try direct document lookup as backup
+    if (!todayTrainFound) {
+      try {
+        // Try exact document ID first
+        const todayDoc = await db.collection(COLLECTIONS.TRAIN_HISTORY).doc(todayFormatted).get();
         
-        console.log(`Loaded ${state.trainHistory.length} train history records`);
-        
-        // If we have history but not today's wagons, use the most recent one
-        if (!state.currentWagons || state.currentWagons.length === 0) {
-          const mostRecent = state.trainHistory[0];
-          if (mostRecent && mostRecent.wagons && Array.isArray(mostRecent.wagons) && mostRecent.wagons.length > 0) {
-            console.log(`Using most recent train assignment from ${mostRecent.date}`);
-            state.currentWagons = [...mostRecent.wagons];
-          } else {
-            console.log('Most recent train history has invalid wagon data');
+        if (todayDoc.exists) {
+          const data = todayDoc.data();
+          if (data && data.wagons && Array.isArray(data.wagons) && data.wagons.length > 0) {
+            console.log(`Found today's train by direct ID lookup with ${data.wagons.length} wagons`);
+            data.id = todayDoc.id;
+            data.docId = todayDoc.id;
+            
+            // Add to history if not already there
+            if (!state.trainHistory.some(h => h.id === data.id)) {
+              console.log(`Adding today's train to history array: ${data.id}`);
+              state.trainHistory.unshift(data);
+            }
+            
+            state.currentWagons = [...data.wagons];
+            todayTrainFound = true;
           }
         }
+        
+        // If still not found, try query by date field
+        if (!todayTrainFound) {
+          const todayQuery = await db.collection(COLLECTIONS.TRAIN_HISTORY)
+            .where('date', '==', todayFormatted)
+            .orderBy('timestamp', 'desc')
+            .limit(1)
+            .get();
+            
+          if (!todayQuery.empty) {
+            console.log(`Found today's train by date field query`);
+            const doc = todayQuery.docs[0];
+            const data = doc.data();
+            
+            if (data && data.wagons && Array.isArray(data.wagons) && data.wagons.length > 0) {
+              data.id = doc.id;
+              data.docId = doc.id;
+              
+              // Add to history if not already there
+              if (!state.trainHistory.some(h => h.id === data.id)) {
+                console.log(`Adding today's train to history array: ${data.id}`);
+                state.trainHistory.unshift(data);
+              }
+              
+              state.currentWagons = [...data.wagons];
+              todayTrainFound = true;
+            }
+          }
+        }
+      } catch (todayError) {
+        console.error('Error getting today\'s train directly:', todayError);
       }
-    } catch (historyError) {
-      console.error('Error loading train history:', historyError);
     }
     
-    // If we still don't have valid wagons, attempt to generate a new daily train
-    if (!state.currentWagons || state.currentWagons.length === 0) {
-      console.log('No valid wagons found in any history, attempting to generate new daily train...');
-      try {
-        const generated = await checkAndGenerateNewDailyTrain();
-        if (generated) {
-          console.log('Successfully generated new daily train');
-          return true;
-        } else {
-          console.log('Failed to generate new daily train or one already existed');
-        }
-      } catch (genError) {
-        console.error('Error while trying to generate new daily train:', genError);
+    // If no valid current wagons, use the most recent history entry
+    if (!todayTrainFound && !state.currentWagons && state.trainHistory.length > 0) {
+      const mostRecent = state.trainHistory[0];
+      if (mostRecent && mostRecent.wagons && Array.isArray(mostRecent.wagons) && mostRecent.wagons.length > 0) {
+        console.log(`Using most recent train assignment from ${mostRecent.date || 'unknown date'}`);
+        state.currentWagons = [...mostRecent.wagons];
       }
     }
     
@@ -2296,18 +2341,41 @@ function openHistoryModal() {
   // Reset pagination to first page
   state.historyPage = 1;
   
-  // Render the history list
-  renderHistoryList();
+  // Make sure train history is loaded
+  if (!state.trainHistory || state.trainHistory.length === 0) {
+    console.log('Train history not loaded or empty, loading it now...');
+    
+    // Show loading indicator in the history modal
+    historyList.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="loading-spinner"></div><p>Loading train history...</p></div>';
+    
+    // Show the modal while loading
+    historyModal.classList.remove('hidden');
+    
+    // Load the history data
+    loadTrainHistory().then(() => {
+      console.log(`Train history loaded: ${state.trainHistory ? state.trainHistory.length : 0} items`);
+      renderHistoryList();
+    }).catch(error => {
+      console.error('Failed to load train history:', error);
+      historyList.innerHTML = '<p style="text-align: center; padding: 20px; color: #ff4444;">Failed to load train history. Please try again.</p>';
+    });
+  } else {
+    // Render the history list with existing data
+    renderHistoryList();
+    
+    // Show the modal
+    historyModal.classList.remove('hidden');
+  }
   
-  // Show the modal
-  historyModal.classList.remove('hidden');
   console.log('History modal should now be visible');
 }
 
 function renderHistoryList() {
+  console.log('Rendering history list');
   historyList.innerHTML = '';
   
   if (!state.trainHistory || state.trainHistory.length === 0) {
+    console.log('No train history to display');
     const noHistoryMessage = document.createElement('p');
     noHistoryMessage.textContent = 'No train history available.';
     noHistoryMessage.style.textAlign = 'center';
@@ -2315,6 +2383,8 @@ function renderHistoryList() {
     historyList.appendChild(noHistoryMessage);
     return;
   }
+  
+  console.log(`Rendering ${state.trainHistory.length} history items`);
   
   // Sort all train history entries by date (newest first) and then by timestamp (newest first)
   const sortedHistory = [...state.trainHistory].sort((a, b) => {
@@ -2350,6 +2420,14 @@ function renderHistoryList() {
   
   // Render each history entry for the current page
   currentPageItems.forEach(history => {
+    // Debug log the structure of each history item
+    console.log('History item:', {
+      id: history.id || 'unknown',
+      date: history.date || 'unknown',
+      timestamp: history.timestamp ? 'present' : 'missing',
+      wagons: history.wagons ? `${history.wagons.length} wagons` : 'no wagons'
+    });
+    
     const historyItem = document.createElement('div');
     historyItem.classList.add('history-item');
     
@@ -2360,7 +2438,7 @@ function renderHistoryList() {
     historyHeader.textContent = formattedDate;
     
     // Add document ID as a small tooltip to help with debugging
-    historyHeader.title = `Document ID: ${history.docId || 'unknown'}`;
+    historyHeader.title = `Document ID: ${history.id || history.docId || 'unknown'}`;
     
     // Add edited indicator if the train was manually edited
     if (history.edited) {
@@ -2372,144 +2450,97 @@ function renderHistoryList() {
       historyHeader.appendChild(editedLabel);
     }
     
+    if (history.autoGenerated) {
+      const autoLabel = document.createElement('span');
+      autoLabel.textContent = ' (Auto-Generated)';
+      autoLabel.style.color = '#ffcc00';
+      autoLabel.style.fontSize = '0.9rem';
+      autoLabel.style.fontStyle = 'italic';
+      historyHeader.appendChild(autoLabel);
+    }
+    
     historyItem.appendChild(historyHeader);
     
     const historyWagons = document.createElement('div');
     historyWagons.classList.add('history-wagons');
     
-    if (history.wagons && Array.isArray(history.wagons)) {
+    if (history.wagons && Array.isArray(history.wagons) && history.wagons.length > 0) {
       history.wagons.forEach((wagon, wagonIndex) => {
         if (!wagon) return; // Skip undefined/null wagons
         
         const wagonEl = document.createElement('div');
         wagonEl.classList.add('history-wagon');
         
-        let wagonTitle = `Wagon ${wagonIndex}`;
+        let wagonTitle = `Wagon ${wagonIndex}`; // Make 1-indexed for display
         if (wagonIndex === 0) {
           wagonTitle = 'Conductor Wagon';
         }
         
         wagonEl.innerHTML = `<strong>${wagonTitle}</strong><ul>`;
         
-        // Display conductor for wagon 0
-        if (wagonIndex === 0 && wagon.conductor) {
-          const conductorMember = getMemberById(wagon.conductor);
-          const conductorName = conductorMember && conductorMember.name ? conductorMember.name : wagon.conductor;
-          wagonEl.innerHTML += `<li>👑 ${conductorName}</li>`;
-        }
-        
-        // Display members for all wagons
-        if (wagon.members && Array.isArray(wagon.members)) {
-          wagon.members.forEach(memberId => {
+        // Handle both object and array formats for wagon members
+        if (Array.isArray(wagon)) {
+          // Array format - direct list of members
+          wagon.forEach(memberId => {
             if (!memberId) return; // Skip undefined/null members
             
             const member = getMemberById(memberId);
-            const memberName = member && member.name ? member.name : memberId;
-            wagonEl.innerHTML += `<li>${memberName}</li>`;
+            const memberName = member?.name || memberId;
+            const roleClass = member?.role ? ` class="${member.role}"` : '';
+            wagonEl.innerHTML += `<li${roleClass}>${memberName}</li>`;
           });
+        } else if (typeof wagon === 'object') {
+          // Object format - separate conductor and members
+          // Display conductor for wagon 0
+          if (wagonIndex === 0 && wagon.conductor) {
+            const conductorMember = getMemberById(wagon.conductor);
+            const conductorName = conductorMember?.name || wagon.conductor;
+            wagonEl.innerHTML += `<li class="conductor">👑 ${conductorName}</li>`;
+          }
+          
+          // Display members for all wagons
+          if (wagon.members && Array.isArray(wagon.members)) {
+            wagon.members.forEach(memberId => {
+              // Handle both string IDs and object members
+              const id = typeof memberId === 'object' ? memberId.id : memberId;
+              const name = typeof memberId === 'object' ? memberId.name : null;
+              
+              if (!id) return; // Skip undefined/null members
+              
+              const member = name ? { name, id } : getMemberById(id);
+              const memberName = member?.name || id;
+              const roleClass = member?.role ? ` class="${member.role}"` : '';
+              wagonEl.innerHTML += `<li${roleClass}>${memberName}</li>`;
+            });
+          }
         }
         
-        // If no members or conductor, show empty message
-        if ((!wagon.members || wagon.members.length === 0) && 
-            (wagonIndex !== 0 || !wagon.conductor)) {
+        // If no members, show empty message
+        const hasMembers = 
+          (Array.isArray(wagon) && wagon.length > 0) || 
+          (wagon.members && wagon.members.length > 0) ||
+          (wagonIndex === 0 && wagon.conductor);
+        
+        if (!hasMembers) {
           wagonEl.innerHTML += `<li><em>Empty</em></li>`;
         }
         
         wagonEl.innerHTML += `</ul>`;
         historyWagons.appendChild(wagonEl);
       });
+    } else {
+      // No valid wagons data
+      const noWagonsMessage = document.createElement('p');
+      noWagonsMessage.textContent = 'No wagon data available for this entry.';
+      noWagonsMessage.style.fontStyle = 'italic';
+      noWagonsMessage.style.color = '#aaa';
+      noWagonsMessage.style.textAlign = 'center';
+      historyWagons.appendChild(noWagonsMessage);
     }
     
     historyItem.appendChild(historyWagons);
     historyList.appendChild(historyItem);
   });
-  
-  // Create pagination controls in the style of the reference.html
-  const paginationContainer = document.createElement('div');
-  paginationContainer.className = 'pagination-controls';
-  
-  // Create the pagination buttons and info section
-  const paginationDiv = document.createElement('div');
-  paginationDiv.className = 'pagination';
-  
-  // Previous button
-  const prevButton = document.createElement('button');
-  prevButton.className = 'pagination-button';
-  prevButton.textContent = '◀ Previous';
-  prevButton.id = 'historyPrevPage';
-  prevButton.disabled = state.historyPage <= 1;
-  prevButton.addEventListener('click', () => {
-    if (state.historyPage > 1) {
-      state.historyPage--;
-      renderHistoryList();
-    }
-  });
-  
-  // Page info
-  const paginationInfo = document.createElement('div');
-  paginationInfo.className = 'pagination-info';
-  paginationInfo.innerHTML = `Page <span id="currentHistoryPage">${state.historyPage}</span> of <span id="totalHistoryPages">${totalPages}</span>`;
-  
-  // Next button
-  const nextButton = document.createElement('button');
-  nextButton.className = 'pagination-button';
-  nextButton.textContent = 'Next ▶';
-  nextButton.id = 'historyNextPage';
-  nextButton.disabled = state.historyPage >= totalPages;
-  nextButton.addEventListener('click', () => {
-    if (state.historyPage < totalPages) {
-      state.historyPage++;
-      renderHistoryList();
-    }
-  });
-  
-  // Assemble pagination section
-  paginationDiv.appendChild(prevButton);
-  paginationDiv.appendChild(paginationInfo);
-  paginationDiv.appendChild(nextButton);
-  
-  // Create page size control section
-  const pageSizeControl = document.createElement('div');
-  pageSizeControl.className = 'page-size-control';
-  
-  // Add label
-  const pageSizeLabel = document.createElement('label');
-  pageSizeLabel.textContent = 'Entries per page:';
-  pageSizeLabel.htmlFor = 'historyPageSize';
-  
-  // Add select dropdown
-  const pageSizeSelect = document.createElement('select');
-  pageSizeSelect.id = 'historyPageSize';
-  
-  // Add options for different page sizes
-  const pageSizeOptions = [5, 10, 15, 20, 30, 50, -1];
-  const pageSizeLabels = { '-1': 'Show All' };
-  
-  pageSizeOptions.forEach(size => {
-    const option = document.createElement('option');
-    option.value = size;
-    option.textContent = pageSizeLabels[size] || size;
-    option.selected = state.historyPageSize === size;
-    pageSizeSelect.appendChild(option);
-  });
-  
-  // Add event listener for page size change
-  pageSizeSelect.addEventListener('change', function() {
-    state.historyPageSize = parseInt(this.value);
-    state.historyPage = 1; // Reset to first page
-    renderHistoryList();
-  });
-  
-  // Assemble page size control
-  pageSizeControl.appendChild(pageSizeLabel);
-  pageSizeControl.appendChild(pageSizeSelect);
-  
-  // Assemble all pagination controls
-  paginationContainer.appendChild(paginationDiv);
-  paginationContainer.appendChild(pageSizeControl);
-  
-  // Add pagination controls to the history list
-  historyList.appendChild(paginationContainer);
 }
 
 // Close all modals
